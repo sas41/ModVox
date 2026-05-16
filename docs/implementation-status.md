@@ -9,9 +9,8 @@
 - Per-user `session_version` with revoke-all semantics.
 - RBAC: `admin`, `moderator`, `maintainer`, `user`.
 - Ban model (temporary/permanent) enforced at login and write actions.
-- EF Core (code-first) with Npgsql for all entity persistence; `record class` entities with navigation properties.
-- In-memory repository implementations retained as fallback/dev stubs.
-- In-memory cache store (pending Valkey migration).
+- EF Core (code-first) with Npgsql for all entity persistence.
+- Valkey-backed cache store via `StackExchange.Redis`.
 - Async refresh queue/worker with idempotency key and coalescing support.
 - Cache coordinator and key factory (`provider:owner:repo:ref:path` schema).
 - Structured source layout: `Core/`, `Controllers/`, `Pages/`, `Models/`, `Infrastructure/`, `wwwroot/`.
@@ -21,8 +20,9 @@
 - `ManifestService` reads, parses, and validates manifests via the provider API.
 - `ManifestOptions` config section (`Manifest:FileName`).
 - Tag label resolution (case-insensitive, unknown labels silently dropped).
+- Supports `credits` (`Guid->string`) and `external_credits` (`string->string`).
 - `GET /api/v1/manifest/scaffold` — scaffold file download, no auth.
-- `POST /api/v1/mods/{modId}/manifest/refresh` — re-reads manifest, updates metadata, verifies token.
+- `POST /api/v1/mods/{modId}/refresh` (plus legacy alias `.../manifest/refresh`) — unified refresh pipeline.
 
 ### Mod Registration and Lifecycle
 - `POST /api/v1/mods` — register mod; reads manifest; issues mod key and verify token; creates mod in `unverified` state.
@@ -37,6 +37,8 @@
 - `GET /api/v1/refresh/jobs/{jobId}` — job status polling.
 - Refresh cooldown enforced via `Refresh:MinIntervalMinutes`.
 - `429` response with `retry_after_seconds`.
+- Unified refresh updates manifest metadata, verifies token, persists README/CHANGELOG markdown+HTML snapshots, and upserts releases/artifacts.
+- Verify token mismatch/missing hard-fails refresh.
 
 ### Games and Tags
 - `POST /api/v1/admin/games`, `GET /api/v1/admin/games`, `GET /api/v1/admin/games/{gameId}`, `POST /api/v1/admin/games/{gameId}`
@@ -59,11 +61,22 @@
 - `DELETE /api/v1/admin/mods/{modId}`
 - `POST /api/v1/mods/{modId}/reports`, `GET /api/v1/moderation/reports`, `POST /api/v1/moderation/reports/{reportId}/resolve`
 - Report types: `rule_violation`, `malicious_code`, `not_working`.
+- `POST /api/v1/mods/{modId:guid}/verify-token/rotate` for moderator/admin (`unverified`/`pending` only).
 
 ### Public Discovery
 - `GET /api/v1/games/{gameId}/mods`, `GET /api/v1/games/{gameId}/mods/{modId}`
 - `POST /api/v1/games/{gameId}/mods/{modId}/download` (download counter)
 - `unverified` and `hidden` mods excluded from all public queries.
+
+### Thunderstore Compatibility (MVP)
+- `GET /api/v1/package/`
+- `GET /c/{community_identifier}/api/v1/package/`
+- `GET /api/experimental/package-index/` (NDJSON)
+- `GET /api/experimental/package/{namespace}/{name}/`
+- `GET /api/experimental/package/{namespace}/{name}/{version}/`
+- `GET /api/experimental/package/{namespace}/{name}/{version}/readme/`
+- `GET /api/experimental/package/{namespace}/{name}/{version}/changelog/`
+- Response shapes are now explicit DTOs under `Models/Thunderstore/`.
 
 ### Audit Log
 - Append-only audit log model and service.
@@ -80,7 +93,7 @@
 | `GET /login` | Staff login (not in public nav) |
 | `GET /settings` | Account self-service |
 | `GET /staff` | Staff dashboard (admin + moderator) |
-| `GET /staff/moderation` | Moderation info page |
+| `GET /staff/moderation` | Manage Mods page (approve/hide/unhide) |
 | `GET /staff/users` | Admin user management |
 | `GET /staff/games` | Admin game management |
 | `GET /staff/edit/user/{userId}` | Admin user edit |
@@ -96,19 +109,13 @@
 - Manifest scaffold download button on the register mod page.
 - Process explanation with numbered steps on the register mod page.
 - Verify token and mod key reveal panels with copy-to-clipboard.
-- Refresh Manifest button on the manage mod page; reloads on successful verification.
+- Refresh Mod button on the manage mod page; reloads on successful refresh.
 
 ---
 
 ## Not Yet Implemented
 
-- **Valkey-backed cache store** — current cache store is in-memory.
-- **Durable session storage** — sessions are in-memory; lost on restart.
-- **Durable audit log** — audit log is in-memory; lost on restart.
 - **Cache invalidation** — not fully wired for moderation/hide/unhide actions.
 - **ETag / conditional requests** — provider calls do not yet use `If-Modified-Since` / `ETag` headers.
 - **Rate limit handling** — upstream GitHub API rate limits are not handled with backoff/retry.
-- **Thunderstore-compatible API** — not yet implemented. Goal: expose endpoints matching the Thunderstore package API schema so existing Thunderstore mod manager clients work without modification.
-  - Thunderstore API reference: `https://thunderstore.io/api/docs/` (OpenAPI 2.0).
-  - Key endpoint groups: `/api/v1/package/` and community-scoped variants; `/api/experimental/package-index/` (newline-delimited JSON stream); `/api/experimental/package/{namespace}/{name}/{version}/readme/`.
-  - Keep Thunderstore adapter code behind its own abstraction boundary — must not bleed into core domain logic.
+- **Thunderstore completeness** — current implementation is mod-manager-focused MVP; broader endpoint parity is still pending.

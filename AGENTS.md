@@ -13,10 +13,10 @@ Build ModVox: a fast website and API for discovering mods hosted on public git r
 
 ## Product Scope
 - Discover mods from public git repository hosts (GitHub first; GitLab, Codeberg, Gitea later).
-- Render remote README files and images from configured repository folders.
+- Render remote README/CHANGELOG content and images from configured repository folders.
 - Mod downloads link directly to release artifact URLs — never proxy.
 - Mod metadata lives in a manifest file in the repository (`modvox.json` by default).
-- Expose a Thunderstore-compatible API for existing mod manager clients.
+- Expose a Thunderstore-compatible API for existing mod manager clients (MVP endpoints are now implemented).
 
 ## Architecture Boundaries
 - Keep host-specific behavior behind provider interfaces.
@@ -33,6 +33,12 @@ Build ModVox: a fast website and API for discovering mods hosted on public git r
 6. Mod key scope and cooldown policy are enforced on all refresh paths.
 7. Unverified and hidden mod visibility is correctly enforced for all public queries.
 8. `docker-compose.yml` remains single-file and functional.
+
+## Current Baseline Notes
+- Database: EF Core + PostgreSQL is active and migrations are applied at startup.
+- Cache: read-path cache coordinator is active and uses Valkey as the backing store.
+- Refresh: unified refresh path is the source of truth for maintainer and CI refresh actions.
+- Thunderstore: mod-manager-focused compatibility endpoints are available under `/api/v1/package/` and `/api/experimental/*`.
 
 ---
 

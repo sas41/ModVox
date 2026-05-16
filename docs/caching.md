@@ -16,11 +16,14 @@ Use cache-aside for all read paths. This is mandatory — every endpoint and ser
 
 Configure per resource type via app settings:
 
-- `Cache:Ttl:Readme`
-- `Cache:Ttl:Images`
-- `Cache:Ttl:Releases`
-- `Cache:Ttl:Listing`
-- `Cache:Ttl:Page`
+- `Cache:ReadmeTtlMinutes`
+- `Cache:ChangelogTtlMinutes`
+- `Cache:ImagesTtlMinutes`
+- `Cache:ReleasesTtlMinutes`
+- `Cache:ListingTtlMinutes`
+- `Cache:PageTtlMinutes`
+- `Cache:NegativeTtlMinutes`
+- `Cache:StaleWindowMinutes`
 
 ## Invalidation
 
@@ -30,4 +33,7 @@ Configure per resource type via app settings:
 
 ## Current State
 
-Cache store is currently in-memory (pending Valkey migration). The coordinator and key factory are implemented with the correct schema.
+- Cache coordinator and cache key factory are active in the read path.
+- Cache backing store is Valkey (`ValkeyCacheStore`) via `StackExchange.Redis`.
+- Single-flight locks are persisted in Valkey using key-level lock entries.
+- Prefix invalidation scans keys by prefix and deletes matching entries.

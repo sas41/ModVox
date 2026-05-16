@@ -5,10 +5,12 @@ Postgres is the durable source of truth. Valkey is the acceleration layer. Never
 ## What to Persist
 
 - Normalised mod metadata: `name`, `description`, `paths`, `tags`, `credits`
+- Additional manifest credits: `external_credits` (`string->string`)
 - Source repository coordinates: `provider`, `owner`, `repository`
 - Verify token and moderation status
 - Release artifact references
-- Fetch metadata: `etag`, `last_modified`, `checked_at`, failure state
+- Rendered content snapshots: README markdown/html and CHANGELOG markdown/html
+- Fetch metadata: `content_fetched_at`
 - Maintainer key hash and rotation history
 
 ## Domain Entities
@@ -31,9 +33,13 @@ Ownership rules:
 | `name` | from manifest |
 | `description` | from manifest, optional |
 | `credits` | `Guid→string` map; keys are ModVox user IDs |
+| `external_credits` | `string→string` map for non-ModVox contributors |
 | `readme_path` | from manifest |
 | `changelog_path` | from manifest |
 | `images_folder` | from manifest |
+| `readme_markdown` / `readme_html` | last fetched README snapshot |
+| `changelog_markdown` / `changelog_html` | last fetched CHANGELOG snapshot |
+| `content_fetched_at` | timestamp of latest successful content fetch |
 | `tag_ids` | resolved server tag IDs |
 | `download_count` | incremented on download |
 | `moderation_status` | `unverified`, `pending`, `approved`, `hidden` |
@@ -43,5 +49,7 @@ Ownership rules:
 
 ## Current State
 
-All repositories are currently in-memory (pending Postgres migration).  
-Sessions and audit log are also in-memory and lost on restart.
+EF Core + PostgreSQL repositories are active and migrations run at startup.
+
+- Core entities are persisted in Postgres.
+- Sessions and audit log are persisted in Postgres.

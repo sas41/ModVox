@@ -22,6 +22,14 @@ Each provider implementation must support:
 ## Markdown Rendering
 
 - Render remote README and local static `.md` content.
+- Render remote CHANGELOG and local static `.md` content.
 - Sanitise rendered HTML to prevent XSS.
 - Rewrite relative links and image paths through provider-aware resolvers.
 - Disallow unsafe HTML/script payloads.
+
+## Current GitHub Behavior
+
+- Uses GitHub API + raw URL endpoints only (no cloning).
+- Maps snake_case fields from GitHub API responses explicitly.
+- Builds public fallback URLs when API URLs are missing.
+- Appends `?raw=true` for GitHub image links used in mod pages.

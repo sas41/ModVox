@@ -26,6 +26,11 @@ Mod key rules:
 4. Maintainer can rotate or revoke at any time from the manage mod page.
 5. No GitHub OAuth, OIDC, webhook signing, or account delegation.
 
+Verify token rules:
+1. Verify token is issued at registration and used only for manifest ownership verification.
+2. Moderator/admin can rotate verify token while mod status is `unverified` or `pending`.
+3. Refresh fails if manifest `verify` token is missing or mismatched.
+
 ## Moderation
 
 | Status | Visible to public | Visible to moderators/admins | Notes |
@@ -41,6 +46,7 @@ Rules:
 3. Only admins and moderators can view hidden/pending mods.
 4. Admins can permanently delete mods.
 5. Admins apply temporary or permanent bans. Banned users cannot perform authenticated write actions.
+6. Staff moderation UI is centered on **Manage Mods** (`/staff/moderation`) with approve/hide/unhide actions.
 
 ## Reports
 

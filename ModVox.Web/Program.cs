@@ -9,6 +9,7 @@ using ModVox.Web.Refresh;
 using ModVox.Web.Repositories;
 using ModVox.Web.Security;
 using ModVox.Web.Services;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -43,7 +44,10 @@ builder.Services.AddScoped<IAuditLogRepository, EfAuditLogRepository>();
 // Services — stateless/infrastructure singletons
 builder.Services.AddSingleton<IModKeyService, ModKeyService>();
 builder.Services.AddSingleton<IPasswordService, PasswordService>();
-builder.Services.AddSingleton<ICacheStore, InMemoryCacheStore>();
+var valkeyConnectionString = builder.Configuration.GetSection("Valkey").GetValue<string>("ConnectionString")
+    ?? throw new InvalidOperationException("Valkey:ConnectionString is required.");
+builder.Services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(valkeyConnectionString));
+builder.Services.AddSingleton<ICacheStore, ValkeyCacheStore>();
 builder.Services.AddSingleton<ICacheKeyFactory, CacheKeyFactory>();
 builder.Services.AddSingleton<ICacheCoordinator, CacheCoordinator>();
 builder.Services.AddSingleton<IRepositoryProvider, GitHubRepositoryProvider>();

@@ -20,19 +20,23 @@ Configured per instance via `Manifest:FileName` (default: `modvox.json`).
   "tags": ["tag-label"],
   "credits": {
     "00000000-0000-0000-0000-000000000000": "What they did"
+  },
+  "external_credits": {
+    "Contributor Name": "What they did"
   }
 }
 ```
 
 Required fields: `name`, `default_ref`, `readme`, `changelog`, `images`, `tags` (at least one label matching a server tag).  
-Optional fields: `description`, `credits`, `verify`.
+Optional fields: `description`, `credits`, `external_credits`, `verify`.
 
 ## Rules
 
 - `tags` labels are matched case-insensitively against server tags. Unknown labels are silently ignored. At least one must resolve.
 - `credits` keys are ModVox user IDs (GUIDs). Any key that is not a valid GUID is silently ignored.
+- `external_credits` is a free-form map of `string -> string` for non-ModVox contributors.
 - `verify` is a server-generated ownership token. When present and matching the stored token the mod transitions from `unverified` to `pending`.
-- Manifest is read at registration time and on every **Refresh Manifest** action.
+- Manifest is read at registration time and on every **Refresh Mod** action.
 - `default_ref` sets the branch for all subsequent content fetches. It can be overridden per-request via an explicit `ref` parameter on the Refresh Manifest endpoint.
 
 ## Registration Flow
@@ -43,7 +47,7 @@ Optional fields: `description`, `credits`, `verify`.
 4. Mod is created in `unverified` state with fields populated from the manifest.
 5. Mod key and verify token are both issued immediately and shown once.
 6. Maintainer adds the verify token to the `verify` field and commits.
-7. Maintainer clicks **Refresh Manifest** on the edit page. If the token matches, the mod transitions to `pending` (visible to moderators for approval).
+7. Maintainer clicks **Refresh Mod** on the edit page. If the token matches, the mod transitions to `pending` (visible to moderators for approval).
 
 ## Scaffold Endpoint
 
