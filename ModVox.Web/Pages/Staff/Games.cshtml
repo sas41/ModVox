@@ -1,0 +1,166 @@
+@page "/staff/games"
+@model ModVox.Web.Pages.Staff.GamesModel
+@{
+    ViewData["Title"] = "Manage Games";
+}
+
+<section class="site-shell staff-card">
+    <h1 class="md-heading md-h1">Manage Games</h1>
+    <p class="md-paragraph staff-muted">Create and edit game settings.</p>
+
+    <div class="staff-toolbar">
+        <form id="game-search-form" class="staff-form staff-grow">
+            <label class="staff-label" for="game-search">Search games</label>
+            <div class="staff-inline">
+                <input id="game-search" class="staff-input" />
+                <button class="staff-button" type="submit">Search</button>
+            </div>
+        </form>
+        <button id="toggle-create-game" class="staff-button" type="button">Add New</button>
+    </div>
+
+    <section id="create-game-panel" class="staff-panel" hidden>
+        <h2 class="md-heading md-h2">Add New Game</h2>
+        <form id="create-game-form" class="staff-form">
+            <div class="staff-grid-2">
+                <div>
+                    <label class="staff-label" for="new-game-name">Name</label>
+                    <input id="new-game-name" class="staff-input" required />
+                </div>
+                <div>
+                    <label class="staff-label" for="new-game-slug">Slug</label>
+                    <input id="new-game-slug" class="staff-input" required />
+                </div>
+            </div>
+            <div class="staff-inline">
+                <button class="staff-button" type="submit">Create Game</button>
+                <button id="cancel-create-game" class="staff-button staff-button-secondary" type="button">Cancel</button>
+            </div>
+        </form>
+    </section>
+
+    <hr class="staff-divider" />
+
+    <div id="games-list" class="staff-table-wrap"></div>
+    <div class="staff-pagination">
+        <button id="games-prev" class="staff-button staff-button-secondary" type="button">Previous</button>
+        <span id="games-page-state" class="staff-muted">Page 1</span>
+        <button id="games-next" class="staff-button staff-button-secondary" type="button">Next</button>
+    </div>
+    <p id="games-status" class="staff-status"></p>
+
+    @if (!string.IsNullOrWhiteSpace(Model.StaffHelpHtml))
+    {
+        <section class="staff-panel">@Html.Raw(Model.StaffHelpHtml)</section>
+    }
+
+    <p class="md-paragraph"><a class="md-link" href="/staff">Back to staff</a></p>
+</section>
+
+@section Scripts {
+<script>
+let currentPage = 1;
+let totalPages = 1;
+let currentQuery = '';
+
+const gamesList = document.getElementById('games-list');
+const status = document.getElementById('games-status');
+const pageState = document.getElementById('games-page-state');
+const panel = document.getElementById('create-game-panel');
+const toggle = document.getElementById('toggle-create-game');
+const cancel = document.getElementById('cancel-create-game');
+
+function esc(v) {
+    return String(v ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+}
+
+async function loadGames() {
+    status.textContent = 'Loading games...';
+    const p = new URLSearchParams({ page: String(currentPage), pageSize: '12' });
+    if (currentQuery) p.set('q', currentQuery);
+    const r = await fetch('/api/v1/admin/games?' + p.toString());
+    if (!r.ok) {
+        status.textContent = 'Failed to load games.';
+        return;
+    }
+    const d = await r.json();
+    currentPage = d.page || 1;
+    totalPages = d.total_pages || 1;
+    pageState.textContent = 'Page ' + currentPage + ' of ' + totalPages;
+    const items = d.items || [];
+    if (items.length === 0) {
+        gamesList.innerHTML = '<p class="md-paragraph">No games found.</p>';
+        status.textContent = '';
+        return;
+    }
+    const rows = items.map(g =>
+        `<tr>
+            <td>${esc(g.name)}</td>
+            <td>${esc(g.slug)}</td>
+            <td>${g.is_hidden ? 'hidden' : 'visible'}</td>
+            <td class="staff-actions-cell"><a class="md-link" href="/staff/edit/game/${g.game_id}">Edit</a></td>
+        </tr>`
+    ).join('');
+    gamesList.innerHTML = `<table class="staff-table">
+        <thead><tr><th>Name</th><th>Slug</th><th>Visibility</th><th class="staff-actions-cell">Actions</th></tr></thead>
+        <tbody>${rows}</tbody>
+    </table>`;
+    status.textContent = '';
+}
+
+document.getElementById('game-search-form').addEventListener('submit', e => {
+    e.preventDefault();
+    currentQuery = document.getElementById('game-search').value.trim();
+    currentPage = 1;
+    loadGames();
+});
+
+document.getElementById('games-prev').addEventListener('click', () => {
+    if (currentPage > 1) { currentPage--; loadGames(); }
+});
+
+document.getElementById('games-next').addEventListener('click', () => {
+    if (currentPage < totalPages) { currentPage++; loadGames(); }
+});
+
+toggle.addEventListener('click', () => {
+    const open = panel.hidden;
+    panel.hidden = !open;
+    toggle.textContent = open ? 'Hide New Game' : 'Add New';
+});
+
+cancel.addEventListener('click', () => {
+    panel.hidden = true;
+    toggle.textContent = 'Add New';
+});
+
+document.getElementById('create-game-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const payload = {
+        name: document.getElementById('new-game-name').value,
+        slug: document.getElementById('new-game-slug').value
+    };
+    const r = await fetch('/api/v1/admin/games', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    if (!r.ok) {
+        status.textContent = 'Create game failed.';
+        return;
+    }
+    status.textContent = 'Game created.';
+    e.target.reset();
+    panel.hidden = true;
+    toggle.textContent = 'Add New';
+    loadGames();
+});
+
+loadGames();
+</script>
+}

@@ -1,0 +1,42 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch ModVox.Web",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/ModVox.Web/bin/Debug/net10.0/ModVox.Web.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/ModVox.Web",
+      "stopAtEntry": false,
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "Now listening on:\\s+(https?://\\S+)"
+      }
+    },
+    {
+      "name": "Attach to .NET process",
+      "type": "coreclr",
+      "request": "attach"
+    },
+    {
+      "name": "Attach to ModVox in Docker",
+      "type": "coreclr",
+      "request": "attach",
+      "processName": "dotnet"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Compose Hot Reload + Attach",
+      "preLaunchTask": "compose up hot reload",
+      "configurations": [
+        "Attach to ModVox in Docker"
+      ]
+    }
+  ]
+}

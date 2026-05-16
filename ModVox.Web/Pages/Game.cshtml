@@ -1,0 +1,32 @@
+@page "/{gameId:guid}"
+@model ModVox.Web.Pages.GameModel
+@{
+    ViewData["Title"] = "Game";
+}
+
+<section class="site-shell staff-card">
+    @if (Model.IsMissing)
+    {
+        <h1 class="md-heading md-h1">Game Not Found</h1>
+    }
+    else
+    {
+        <h1 class="md-heading md-h1">@Model.GameName Mods</h1>
+        <form method="get" class="staff-form">
+            <label class="staff-label" for="q">Search mods</label>
+            <div class="staff-inline">
+                <input class="staff-input" id="q" name="q" value="@Model.Query" />
+                <button class="staff-button" type="submit">Search</button>
+            </div>
+        </form>
+        <ul class="md-list md-list-unordered">
+            @foreach (var item in Model.Mods)
+            {
+                <li class="md-list-item">
+                    <a class="md-link" href="/@item.GameId/@item.ModId">@item.Label</a>
+                    <span class="staff-muted">(@item.DownloadCount downloads)</span>
+                </li>
+            }
+        </ul>
+    }
+</section>

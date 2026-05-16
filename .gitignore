@@ -1,0 +1,17 @@
+bin/
+obj/
+
+.vs/
+.vscode/*.log
+
+*.user
+*.suo
+*.cache
+
+TestResults/
+
+*.db
+*.sqlite
+
+.DS_Store
+Thumbs.db

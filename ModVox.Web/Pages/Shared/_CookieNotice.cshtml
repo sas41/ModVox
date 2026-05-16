@@ -1,0 +1,23 @@
+<div id="cookie-notice" class="cookie-notice" hidden>
+  <p class="cookie-notice-text">ModVox uses essential cookies for login sessions and security.</p>
+  <button id="cookie-notice-accept" class="staff-button" type="button">OK</button>
+</div>
+<script>
+  (function () {
+    var key = 'modvox_cookie_notice_ack';
+    var notice = document.getElementById('cookie-notice');
+    var button = document.getElementById('cookie-notice-accept');
+    if (!notice || !button) {
+      return;
+    }
+
+    if (localStorage.getItem(key) !== '1') {
+      notice.hidden = false;
+    }
+
+    button.addEventListener('click', function () {
+      localStorage.setItem(key, '1');
+      notice.hidden = true;
+    });
+  })();
+</script>

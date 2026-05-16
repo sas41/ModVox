@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] - ModVox</title>
+    <link rel="stylesheet" href="/css/site.css" />
+</head>
+
+<body class="site-body">
+    <header class="site-header">
+        <div class="site-shell site-header-inner">
+            <div class="site-header-brand">
+                <a class="brand" href="/">ModVox</a>
+                <span class="brand-subtitle">Public git mod discovery</span>
+            </div>
+            @await Html.PartialAsync("_NavUser")
+        </div>
+    </header>
+    <main class="site-main">
+        @RenderBody()
+    </main>
+    @await Html.PartialAsync("_CookieNotice")
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+
+</html>

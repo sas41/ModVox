@@ -1,0 +1,22 @@
+@page "/"
+@model ModVox.Web.Pages.IndexModel
+@{
+    ViewData["Title"] = "Games";
+}
+
+<section class="site-shell staff-card">
+    <h1 class="md-heading md-h1">Games</h1>
+    <form method="get" class="staff-form">
+        <label class="staff-label" for="q">Search</label>
+        <div class="staff-inline">
+            <input class="staff-input" id="q" name="q" value="@Model.Query" />
+            <button class="staff-button" type="submit">Search</button>
+        </div>
+    </form>
+    <ul class="md-list md-list-unordered">
+        @foreach (var game in Model.Items)
+        {
+            <li class="md-list-item"><a class="md-link" href="/@game.GameId">@game.Name</a></li>
+        }
+    </ul>
+</section>

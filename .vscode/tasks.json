@@ -1,0 +1,103 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build",
+      "type": "process",
+      "command": "dotnet",
+      "args": [
+        "build",
+        "${workspaceFolder}/ModVox.sln"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "run web",
+      "type": "process",
+      "command": "dotnet",
+      "args": [
+        "run",
+        "--project",
+        "${workspaceFolder}/ModVox.Web/ModVox.Web.csproj"
+      ],
+      "dependsOn": "build",
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "watch web",
+      "type": "process",
+      "command": "dotnet",
+      "args": [
+        "watch",
+        "--project",
+        "${workspaceFolder}/ModVox.Web/ModVox.Web.csproj",
+        "run"
+      ],
+      "isBackground": true,
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "compose up",
+      "type": "process",
+      "command": "docker",
+      "args": [
+        "compose",
+        "up",
+        "--build"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "compose up hot reload",
+      "type": "process",
+      "command": "${workspaceFolder}/dev.sh",
+      "args": [
+        "up"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true
+    },
+    {
+      "label": "dev down",
+      "type": "process",
+      "command": "${workspaceFolder}/dev.sh",
+      "args": [
+        "down"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "dev clean",
+      "type": "process",
+      "command": "${workspaceFolder}/dev.sh",
+      "args": [
+        "clean"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "compose down",
+      "type": "process",
+      "command": "docker",
+      "args": [
+        "compose",
+        "down"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    }
+  ]
+}

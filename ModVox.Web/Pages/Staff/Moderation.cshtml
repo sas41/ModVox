@@ -1,0 +1,20 @@
+@page "/staff/moderation"
+@model ModVox.Web.Pages.Staff.ModerationModel
+@{
+    ViewData["Title"] = "Moderation";
+}
+
+<section class="site-shell staff-card">
+    <h1 class="md-heading md-h1">Moderation</h1>
+    <p class="md-paragraph">Use mod-level moderation endpoints to hide/unhide/approve mods.</p>
+    <ul class="md-list md-list-unordered">
+        <li class="md-list-item"><code class="md-inline-code">POST /api/v1/mods/{modId}/moderation/hide</code></li>
+        <li class="md-list-item"><code class="md-inline-code">POST /api/v1/mods/{modId}/moderation/unhide</code></li>
+        <li class="md-list-item"><code class="md-inline-code">POST /api/v1/mods/{modId}/moderation/approve</code></li>
+    </ul>
+    <p class="md-paragraph"><a class="md-link" href="/staff">Back to staff</a></p>
+    @if (!string.IsNullOrWhiteSpace(Model.StaffHelpHtml))
+    {
+        <section class="staff-panel">@Html.Raw(Model.StaffHelpHtml)</section>
+    }
+</section>

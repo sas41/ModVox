@@ -1,0 +1,133 @@
+@page "/settings"
+@model ModVox.Web.Pages.SettingsModel
+@{
+    ViewData["Title"] = "Settings";
+}
+
+<section class="site-shell staff-card">
+    <h1 class="md-heading md-h1">Account Settings</h1>
+    <p class="md-paragraph staff-muted">Manage your credentials, display name, and session.</p>
+
+    <div class="staff-grid-2">
+        <form id="change-credentials" class="staff-form staff-panel">
+            <h2 class="md-heading md-h3">Username &amp; Password</h2>
+            <label class="staff-label" for="new-username">New username</label>
+            <input class="staff-input" id="new-username" required />
+            <label class="staff-label" for="new-password">New password</label>
+            <input class="staff-input" id="new-password" type="password" required />
+            <button class="staff-button" type="submit">Update</button>
+        </form>
+
+        <form id="change-display-name" class="staff-form staff-panel">
+            <h2 class="md-heading md-h3">Display Name</h2>
+            <label class="staff-label" for="display-name">Display name</label>
+            <input class="staff-input" id="display-name" required />
+            <button class="staff-button" type="submit">Update</button>
+        </form>
+
+        <form id="change-password" class="staff-form staff-panel">
+            <h2 class="md-heading md-h3">Change Password</h2>
+            <label class="staff-label" for="current-password">Current password</label>
+            <input class="staff-input" id="current-password" type="password" required />
+            <label class="staff-label" for="new-password-only">New password</label>
+            <input class="staff-input" id="new-password-only" type="password" required />
+            <button class="staff-button" type="submit">Change password</button>
+        </form>
+
+        <div class="staff-panel">
+            <h2 class="md-heading md-h3">Session</h2>
+            <div class="staff-inline">
+                <button id="logout" class="staff-button" type="button">Logout</button>
+                <button id="logout-all" class="staff-button staff-button-secondary" type="button">Logout all sessions</button>
+            </div>
+            <hr class="staff-divider" />
+            <h2 class="md-heading md-h3">Danger Zone</h2>
+            <button id="delete-account" class="staff-button staff-button-secondary" type="button">Delete account</button>
+        </div>
+    </div>
+
+    <p id="settings-status" class="staff-status" aria-live="polite"></p>
+</section>
+
+@section Scripts {
+<script>
+const status = document.getElementById('settings-status');
+
+async function postJson(url, payload) {
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload ?? {})
+    });
+    if (!response.ok) {
+        throw new Error('Request failed: ' + response.status);
+    }
+}
+
+document.getElementById('change-credentials').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    try {
+        await postJson('/api/v1/auth/change-credentials', {
+            newUsername: document.getElementById('new-username').value,
+            newPassword: document.getElementById('new-password').value
+        });
+        status.textContent = 'Username/password updated.';
+    } catch {
+        status.textContent = 'Failed to update username/password.';
+    }
+});
+
+document.getElementById('change-display-name').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    try {
+        await postJson('/api/v1/account/change-display-name', {
+            displayName: document.getElementById('display-name').value
+        });
+        status.textContent = 'Display name updated.';
+    } catch {
+        status.textContent = 'Failed to update display name.';
+    }
+});
+
+document.getElementById('change-password').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    try {
+        await postJson('/api/v1/account/change-password', {
+            currentPassword: document.getElementById('current-password').value,
+            newPassword: document.getElementById('new-password-only').value
+        });
+        status.textContent = 'Password updated. Please login again.';
+        window.location.href = '/login';
+    } catch {
+        status.textContent = 'Failed to update password.';
+    }
+});
+
+document.getElementById('logout').addEventListener('click', async () => {
+    try {
+        await postJson('/api/v1/auth/logout');
+        window.location.href = '/login';
+    } catch {
+        status.textContent = 'Failed to logout.';
+    }
+});
+
+document.getElementById('logout-all').addEventListener('click', async () => {
+    try {
+        await postJson('/api/v1/auth/logout-all');
+        window.location.href = '/login';
+    } catch {
+        status.textContent = 'Failed to logout all sessions.';
+    }
+});
+
+document.getElementById('delete-account').addEventListener('click', async () => {
+    try {
+        await postJson('/api/v1/account/delete');
+        window.location.href = '/login';
+    } catch {
+        status.textContent = 'Failed to delete account.';
+    }
+});
+</script>
+}

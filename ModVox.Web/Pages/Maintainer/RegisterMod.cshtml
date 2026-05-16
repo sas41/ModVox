@@ -1,0 +1,186 @@
+@page "/maintainer/register"
+@model ModVox.Web.Pages.Maintainer.RegisterModModel
+@{
+    ViewData["Title"] = "Register Mod";
+}
+
+<section class="site-shell staff-card">
+    <h1 class="md-heading md-h1">Register Mod</h1>
+
+    <div class="staff-panel">
+        <h2 class="md-heading md-h3">How it works</h2>
+        <ol class="md-list md-list-ordered">
+            <li class="md-list-item">
+                Download the scaffold <code class="md-inline-code">@Model.ManifestFileName</code> below and commit it to the root of your repository.
+                Fill in all required fields: <code class="md-inline-code">name</code>, <code class="md-inline-code">default_ref</code>,
+                <code class="md-inline-code">readme</code>, <code class="md-inline-code">changelog</code>,
+                <code class="md-inline-code">images</code>, and <code class="md-inline-code">tags</code>.
+            </li>
+            <li class="md-list-item">
+                Submit the form below. We will read your <code class="md-inline-code">@Model.ManifestFileName</code> from the repository
+                and register the mod in an <strong>unverified</strong> state.
+            </li>
+            <li class="md-list-item">
+                You will receive a <strong>verification token</strong> and a <strong>mod key</strong>.
+                Add the verification token to the <code class="md-inline-code">verify</code> field in your manifest and commit it.
+            </li>
+            <li class="md-list-item">
+                Go to your mod's manage page and click <strong>Refresh Manifest</strong>.
+                Once the token matches, your mod transitions to <strong>pending</strong> and becomes visible to moderators for approval.
+            </li>
+        </ol>
+        <button id="download-scaffold" class="staff-button staff-button-secondary" type="button">
+            Download @Model.ManifestFileName
+        </button>
+    </div>
+
+    <form id="register-mod-form" class="staff-form">
+        <div class="staff-grid-2">
+            <div>
+                <label class="staff-label" for="game-id">Game</label>
+                <select class="staff-input" id="game-id" required>
+                    <option value="">Select a game...</option>
+                    @foreach (var game in Model.Games)
+                    {
+                        <option value="@game.GameId">@game.Name</option>
+                    }
+                </select>
+            </div>
+            <div>
+                <label class="staff-label" for="provider">Provider</label>
+                <select class="staff-input" id="provider">
+                    <option value="github">GitHub</option>
+                </select>
+            </div>
+        </div>
+        <div>
+            <label class="staff-label" for="repository-url">Repository URL</label>
+            <input class="staff-input" id="repository-url" type="url" placeholder="https://github.com/owner/repo" required />
+        </div>
+        <div>
+            <label class="staff-label" for="initial-ref">
+                Initial ref / branch
+                <span class="staff-muted">(optional — used only to find your manifest; defaults to HEAD)</span>
+            </label>
+            <input class="staff-input" id="initial-ref" placeholder="main" />
+        </div>
+
+        <div class="staff-inline">
+            <button class="staff-button" type="submit">Register Mod</button>
+            <a class="md-link" href="/maintainer">Cancel</a>
+        </div>
+    </form>
+
+    <div id="result-panel" class="staff-panel" hidden>
+        <h2 class="md-heading md-h3">Mod registered</h2>
+
+        <p class="md-paragraph">
+            Your mod <strong id="result-mod-name"></strong> has been registered in unverified state.
+            Complete the steps below to make it visible to moderators.
+        </p>
+
+        <hr class="staff-divider" />
+
+        <h2 class="md-heading md-h3">Step 1 — Add the verification token to your manifest</h2>
+        <p class="md-paragraph staff-muted">
+            Open your <code class="md-inline-code">@Model.ManifestFileName</code> and set the
+            <code class="md-inline-code">verify</code> field to the token below, then commit.
+        </p>
+        <div class="staff-inline">
+            <code id="verify-token-value" class="md-inline-code key-display"></code>
+            <button id="copy-verify-token" class="staff-button staff-button-secondary" type="button">Copy</button>
+        </div>
+
+        <hr class="staff-divider" />
+
+        <h2 class="md-heading md-h3">Step 2 — Save your mod key</h2>
+        <p class="md-paragraph staff-muted">
+            This key is shown once only. Use it with
+            <code class="md-inline-code">Authorization: Bearer &lt;key&gt;</code> in CI to trigger content refreshes.
+        </p>
+        <div class="staff-inline">
+            <code id="mod-key-value" class="md-inline-code key-display"></code>
+            <button id="copy-mod-key" class="staff-button staff-button-secondary" type="button">Copy</button>
+        </div>
+
+        <hr class="staff-divider" />
+
+        <p class="md-paragraph">
+            <a id="manage-mod-link" class="staff-button" href="#">Go to Manage Mod</a>
+        </p>
+    </div>
+
+    <p id="register-status" class="staff-status" aria-live="polite"></p>
+</section>
+
+@section Scripts {
+<script>
+const form = document.getElementById('register-mod-form');
+const resultPanel = document.getElementById('result-panel');
+const status = document.getElementById('register-status');
+
+document.getElementById('download-scaffold').addEventListener('click', async () => {
+    const r = await fetch('/api/v1/manifest/scaffold');
+    if (!r.ok) { status.textContent = 'Failed to download scaffold.'; return; }
+    const blob = await r.blob();
+    const disposition = r.headers.get('Content-Disposition') ?? '';
+    const match = disposition.match(/filename=([^;]+)/);
+    const fileName = match ? match[1].trim() : '@Model.ManifestFileName';
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(url);
+});
+
+form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    status.textContent = 'Registering...';
+
+    const payload = {
+        game_id: document.getElementById('game-id').value,
+        repository_url: document.getElementById('repository-url').value,
+        initial_ref: document.getElementById('initial-ref').value.trim() || null
+    };
+
+    const r = await fetch('/api/v1/mods', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+
+    if (!r.ok) {
+        let msg = 'Registration failed (' + r.status + ').';
+        try {
+            const err = await r.json();
+            if (err.message) msg = err.message;
+        } catch {}
+        status.textContent = msg;
+        return;
+    }
+
+    const data = await r.json();
+
+    form.hidden = true;
+    document.getElementById('result-mod-name').textContent = data.name;
+    document.getElementById('verify-token-value').textContent = data.verify_token;
+    document.getElementById('mod-key-value').textContent = data.key;
+    document.getElementById('manage-mod-link').href = '/maintainer/edit/' + data.mod_id;
+    resultPanel.hidden = false;
+    status.textContent = '';
+});
+
+function makeCopyButton(buttonId, sourceId) {
+    document.getElementById(buttonId).addEventListener('click', () => {
+        const text = document.getElementById(sourceId).textContent;
+        navigator.clipboard.writeText(text).then(() => {
+            document.getElementById(buttonId).textContent = 'Copied!';
+        });
+    });
+}
+
+makeCopyButton('copy-verify-token', 'verify-token-value');
+makeCopyButton('copy-mod-key', 'mod-key-value');
+</script>
+}

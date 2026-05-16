@@ -1,0 +1,26 @@
+@page "/staff"
+@model ModVox.Web.Pages.Staff.StaffIndexModel
+@{
+    ViewData["Title"] = "Staff";
+}
+
+<section class="site-shell staff-card">
+    <h1 class="md-heading md-h1">Staff</h1>
+    <p class="md-paragraph staff-muted">Internal tools for administration and moderation.</p>
+    @if (Model.IsAdmin)
+    {
+        <h2 class="md-heading md-h2">Administration</h2>
+        <ul class="md-list md-list-unordered">
+            <li class="md-list-item"><a class="md-link" href="/staff/users">Manage Users</a></li>
+            <li class="md-list-item"><a class="md-link" href="/staff/games">Manage Games</a></li>
+        </ul>
+    }
+    <h2 class="md-heading md-h2">Moderation</h2>
+    <ul class="md-list md-list-unordered">
+        <li class="md-list-item"><a class="md-link" href="/staff/moderation">Hide Mods</a></li>
+    </ul>
+    @if (!string.IsNullOrWhiteSpace(Model.StaffHelpHtml))
+    {
+        <section class="staff-panel">@Html.Raw(Model.StaffHelpHtml)</section>
+    }
+</section>

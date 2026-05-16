@@ -1,0 +1,25 @@
+@using ModVox.Web.Security
+@using ModVox.Web.Domain
+@inject IAccountAuthorizationService AuthorizationService
+
+@{
+    var navHttpContext = ViewContext.HttpContext;
+    var navUser = await AuthorizationService.GetCurrentUserAsync(navHttpContext, navHttpContext.RequestAborted);
+    var isMaintainer = navUser is not null && AuthorizationService.HasRole(navUser, UserRoles.Maintainer, UserRoles.Admin);
+    var isStaff = navUser is not null && AuthorizationService.HasRole(navUser, UserRoles.Admin, UserRoles.Moderator);
+}
+
+@if (navUser is not null)
+{
+    <nav class="site-nav" aria-label="User navigation">
+        @if (isMaintainer)
+        {
+            <a class="nav-link" href="/maintainer">My Mods</a>
+        }
+        @if (isStaff)
+        {
+            <a class="nav-link" href="/staff">Staff</a>
+        }
+        <a class="nav-link" href="/settings">@navUser.DisplayName</a>
+    </nav>
+}

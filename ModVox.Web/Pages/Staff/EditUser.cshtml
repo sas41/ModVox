@@ -1,0 +1,257 @@
+@page "/staff/edit/user/{userId:guid}"
+@model ModVox.Web.Pages.Staff.EditUserModel
+@{
+    ViewData["Title"] = "Edit User";
+}
+
+<section class="site-shell staff-card staff-card-wide">
+    <h1 class="md-heading md-h1">Edit User</h1>
+    <p class="md-paragraph staff-muted">Admin controls for user account management.</p>
+    <p class="md-paragraph"><code class="md-inline-code">@Model.UserId</code></p>
+    <div id="edit-user-meta" class="md-paragraph"></div>
+
+    <div class="staff-grid-3">
+        <form id="form-username" class="staff-form staff-panel">
+            <h2 class="md-heading md-h3">Username</h2>
+            <label class="staff-label" for="username">Username</label>
+            <input id="username" class="staff-input" required />
+            <button class="staff-button" type="submit">Save Username</button>
+        </form>
+
+        <form id="form-display" class="staff-form staff-panel">
+            <h2 class="md-heading md-h3">Display Name</h2>
+            <label class="staff-label" for="display">Display Name</label>
+            <input id="display" class="staff-input" required />
+            <button class="staff-button" type="submit">Save Display Name</button>
+        </form>
+
+        <form id="form-email" class="staff-form staff-panel">
+            <h2 class="md-heading md-h3">Email</h2>
+            <label class="staff-label" for="email">Email</label>
+            <input id="email" type="email" class="staff-input" required />
+            <button class="staff-button" type="submit">Save Email</button>
+        </form>
+
+        <form id="form-password" class="staff-form staff-panel">
+            <h2 class="md-heading md-h3">Password</h2>
+            <label class="staff-label" for="password">New Password</label>
+            <input id="password" type="password" class="staff-input" required />
+            <button class="staff-button" type="submit">Reset Password</button>
+        </form>
+
+        <form id="form-role" class="staff-form staff-panel">
+            <h2 class="md-heading md-h3">Role</h2>
+            <label class="staff-label" for="role">Role</label>
+            <select id="role" class="staff-input">
+                <option>admin</option>
+                <option>moderator</option>
+                <option>maintainer</option>
+                <option>user</option>
+            </select>
+            <button class="staff-button" type="submit">Save Role</button>
+        </form>
+
+        <form id="form-ban" class="staff-form staff-panel">
+            <h2 class="md-heading md-h3">Ban</h2>
+            <label class="staff-label" for="ban-type">Type</label>
+            <select id="ban-type" class="staff-input">
+                <option>temporary</option>
+                <option>permanent</option>
+            </select>
+            <label class="staff-label" for="ban-duration">Duration Minutes (temporary)</label>
+            <input id="ban-duration" class="staff-input" type="number" min="1" value="60" />
+            <div class="staff-inline">
+                <button class="staff-button" type="submit">Ban User</button>
+                <button id="unban" class="staff-button staff-button-secondary" type="button">Unban</button>
+            </div>
+        </form>
+
+        <form id="form-revoke-mod-key" class="staff-form staff-panel">
+            <h2 class="md-heading md-h3">Revoke Mod Key</h2>
+            <label class="staff-label" for="mod-select">Maintainer Mods</label>
+            <select id="mod-select" class="staff-input"></select>
+            <div class="staff-inline">
+                <button class="staff-button" type="submit">Revoke Selected Key</button>
+                <button id="revoke-all-keys" class="staff-button staff-button-secondary" type="button">Revoke All Keys</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="staff-inline">
+        <button id="revoke-sessions" class="staff-button staff-button-secondary" type="button">Logout All Sessions</button>
+        <a class="md-link" href="/staff/users">Back to Manage Users</a>
+    </div>
+    <p id="edit-user-status" class="staff-status"></p>
+
+    @if (!string.IsNullOrWhiteSpace(Model.StaffHelpHtml))
+    {
+        <section class="staff-panel">@Html.Raw(Model.StaffHelpHtml)</section>
+    }
+</section>
+
+@section Scripts {
+<script>
+const userId = '@Model.UserId';
+const status = document.getElementById('edit-user-status');
+const meta = document.getElementById('edit-user-meta');
+
+async function getUser() {
+    const r = await fetch('/api/v1/admin/users/' + userId);
+    if (!r.ok) {
+        status.textContent = 'Failed to load user.';
+        return null;
+    }
+    const u = await r.json();
+    document.getElementById('username').value = u.username;
+    document.getElementById('display').value = u.displayName;
+    document.getElementById('email').value = u.email;
+    document.getElementById('role').value = u.role;
+    meta.textContent = 'Current: ' + u.username + ' (' + u.displayName + ')';
+    return u;
+}
+
+async function loadMaintainerMods() {
+    const select = document.getElementById('mod-select');
+    const r = await fetch('/api/v1/admin/users/' + userId + '/mods');
+    if (!r.ok) {
+        select.innerHTML = '';
+        return;
+    }
+    const mods = await r.json();
+    if (!mods.length) {
+        select.innerHTML = '<option value="">No mods</option>';
+        return;
+    }
+    select.innerHTML = mods.map(m =>
+        `<option value="${m.mod_id}">${m.name} (${m.key_active ? 'key active' : 'key revoked'})</option>`
+    ).join('');
+}
+
+async function post(path, payload) {
+    const r = await fetch(path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload ?? {})
+    });
+    if (!r.ok) throw new Error();
+    return r;
+}
+
+document.getElementById('form-username').addEventListener('submit', async e => {
+    e.preventDefault();
+    try {
+        await post('/api/v1/admin/users/' + userId + '/username', { username: document.getElementById('username').value });
+        status.textContent = 'Username updated.';
+        await getUser();
+    } catch {
+        status.textContent = 'Failed to update username.';
+    }
+});
+
+document.getElementById('form-display').addEventListener('submit', async e => {
+    e.preventDefault();
+    try {
+        await post('/api/v1/admin/users/' + userId + '/display-name', { displayName: document.getElementById('display').value });
+        status.textContent = 'Display name updated.';
+        await getUser();
+    } catch {
+        status.textContent = 'Failed to update display name.';
+    }
+});
+
+document.getElementById('form-email').addEventListener('submit', async e => {
+    e.preventDefault();
+    try {
+        await post('/api/v1/admin/users/' + userId + '/email', { email: document.getElementById('email').value });
+        status.textContent = 'Email updated.';
+        await getUser();
+    } catch {
+        status.textContent = 'Failed to update email.';
+    }
+});
+
+document.getElementById('form-password').addEventListener('submit', async e => {
+    e.preventDefault();
+    try {
+        await post('/api/v1/admin/users/' + userId + '/password', { newPassword: document.getElementById('password').value });
+        status.textContent = 'Password reset.';
+        document.getElementById('password').value = '';
+    } catch {
+        status.textContent = 'Failed to reset password.';
+    }
+});
+
+document.getElementById('form-role').addEventListener('submit', async e => {
+    e.preventDefault();
+    try {
+        await post('/api/v1/admin/users/' + userId + '/role', { role: document.getElementById('role').value });
+        status.textContent = 'Role updated.';
+        await getUser();
+    } catch {
+        status.textContent = 'Failed to update role.';
+    }
+});
+
+document.getElementById('form-ban').addEventListener('submit', async e => {
+    e.preventDefault();
+    try {
+        const type = document.getElementById('ban-type').value;
+        const durationMinutes = type === 'temporary' ? Number(document.getElementById('ban-duration').value) : null;
+        await post('/api/v1/admin/users/' + userId + '/ban', { type, durationMinutes });
+        status.textContent = 'User banned.';
+    } catch {
+        status.textContent = 'Failed to ban user.';
+    }
+});
+
+document.getElementById('unban').addEventListener('click', async () => {
+    try {
+        await post('/api/v1/admin/users/' + userId + '/unban');
+        status.textContent = 'User unbanned.';
+    } catch {
+        status.textContent = 'Failed to unban user.';
+    }
+});
+
+document.getElementById('revoke-sessions').addEventListener('click', async () => {
+    try {
+        await post('/api/v1/admin/users/' + userId + '/revoke-all-tokens');
+        status.textContent = 'Sessions revoked.';
+    } catch {
+        status.textContent = 'Failed to revoke sessions.';
+    }
+});
+
+document.getElementById('form-revoke-mod-key').addEventListener('submit', async e => {
+    e.preventDefault();
+    try {
+        const modId = document.getElementById('mod-select').value;
+        if (!modId) {
+            status.textContent = 'No mod selected.';
+            return;
+        }
+        const r = await fetch('/api/v1/mods/' + modId + '/keys/revoke', { method: 'POST' });
+        if (!r.ok) throw new Error();
+        status.textContent = 'Mod key revoked.';
+        await loadMaintainerMods();
+    } catch {
+        status.textContent = 'Failed to revoke mod key.';
+    }
+});
+
+document.getElementById('revoke-all-keys').addEventListener('click', async () => {
+    try {
+        const r = await fetch('/api/v1/admin/users/' + userId + '/mods/keys/revoke-all', { method: 'POST' });
+        if (!r.ok) throw new Error();
+        const data = await r.json();
+        status.textContent = 'Revoked ' + data.revoked_count + ' mod keys.';
+        await loadMaintainerMods();
+    } catch {
+        status.textContent = 'Failed to revoke all mod keys.';
+    }
+});
+
+getUser();
+loadMaintainerMods();
+</script>
+}

@@ -1,0 +1,66 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: ModVox.Web/Dockerfile
+      target: dev
+    working_dir: /src/ModVox.Web
+    volumes:
+      - ./:/src
+      - modvox-nuget:/root/.nuget/packages
+      - modvox-web-obj:/src/ModVox.Web/obj
+      - modvox-web-bin:/src/ModVox.Web/bin
+    environment:
+      ASPNETCORE_URLS: http://0.0.0.0:8080
+      ASPNETCORE_ENVIRONMENT: Development
+      DOTNET_USE_POLLING_FILE_WATCHER: "1"
+      DOTNET_WATCH_RESTART_ON_RUDE_EDIT: "1"
+      DOTNET_CLI_HOME: /tmp
+      ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=modvox;Username=modvox;Password=modvox
+      Valkey__ConnectionString: valkey:6379
+      Refresh__MinIntervalMinutes: 10
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 15s
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: modvox
+      POSTGRES_USER: modvox
+      POSTGRES_PASSWORD: modvox
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U modvox -d modvox"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  valkey:
+    image: valkey/valkey:8-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  postgres-data:
+  modvox-nuget:
+  modvox-web-obj:
+  modvox-web-bin:

@@ -1,0 +1,73 @@
+@page "/maintainer"
+@model ModVox.Web.Pages.Maintainer.MaintainerIndexModel
+@{
+    ViewData["Title"] = "My Mods";
+}
+
+<section class="site-shell staff-card">
+    <h1 class="md-heading md-h1">My Mods</h1>
+    <p class="md-paragraph staff-muted">Manage and monitor your registered mods.</p>
+
+    @if (Model.HasBlockedMods)
+    {
+        <div class="staff-panel">
+            <p class="md-paragraph">
+                One or more of your mods has been hidden by a moderator.
+                You cannot register new mods until the issue is resolved. Contact a moderator for assistance.
+            </p>
+        </div>
+    }
+
+    @if (Model.Mods.Count == 0)
+    {
+        <p class="md-paragraph">You have no registered mods yet.</p>
+    }
+    else
+    {
+        <div class="staff-table-wrap">
+            <table class="staff-table">
+                <thead>
+                    <tr>
+                        <th>Mod</th>
+                        <th>Game</th>
+                        <th>Status</th>
+                        <th>Key</th>
+                        <th>Downloads</th>
+                        <th class="staff-actions-cell">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var mod in Model.Mods)
+                    {
+                        <tr>
+                            <td>
+                                <div>@mod.Name</div>
+                                <div class="staff-muted" style="font-size:0.82rem">@mod.Owner/@mod.Repository</div>
+                                @if (mod.IsUnverified)
+                                {
+                                    <div style="font-size:0.8rem;margin-top:0.2rem">
+                                        <a class="md-link" href="/maintainer/edit/@mod.ModId">Needs verification &rarr;</a>
+                                    </div>
+                                }
+                            </td>
+                            <td>@mod.GameName</td>
+                            <td><span class="status-badge status-@mod.ModerationStatus">@mod.ModerationStatus</span></td>
+                            <td>@(mod.KeyActive ? "active" : "revoked")</td>
+                            <td>@mod.DownloadCount</td>
+                            <td class="staff-actions-cell">
+                                <a class="staff-button staff-button-secondary" href="/maintainer/edit/@mod.ModId">Manage</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <hr class="staff-divider" />
+
+    @if (!Model.HasBlockedMods)
+    {
+        <a class="staff-button" href="/maintainer/register">Register New Mod</a>
+    }
+</section>

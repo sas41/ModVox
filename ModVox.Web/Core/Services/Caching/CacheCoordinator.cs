@@ -1,0 +1,81 @@
+using Microsoft.Extensions.Options;
+using ModVox.Web.Config;
+
+namespace ModVox.Web.Caching;
+
+public sealed class CacheCoordinator : ICacheCoordinator
+{
+    private readonly ICacheStore _cacheStore;
+    private readonly ICacheKeyFactory _cacheKeyFactory;
+    private readonly CacheOptions _options;
+
+    public CacheCoordinator(ICacheStore cacheStore, ICacheKeyFactory cacheKeyFactory, IOptions<CacheOptions> options)
+    {
+        _cacheStore = cacheStore;
+        _cacheKeyFactory = cacheKeyFactory;
+        _options = options.Value;
+    }
+
+    public Task<CacheEnvelope<T>?> GetAsync<T>(
+        CacheResourceType resourceType,
+        string provider,
+        string owner,
+        string repository,
+        string refName,
+        string path,
+        CancellationToken cancellationToken)
+    {
+        var key = _cacheKeyFactory.Build(resourceType, provider, owner, repository, refName, path);
+        return _cacheStore.GetAsync<T>(key, cancellationToken);
+    }
+
+    public Task SetAsync<T>(
+        CacheResourceType resourceType,
+        string provider,
+        string owner,
+        string repository,
+        string refName,
+        string path,
+        T value,
+        bool isNegative,
+        CancellationToken cancellationToken)
+    {
+        var key = _cacheKeyFactory.Build(resourceType, provider, owner, repository, refName, path);
+        var ttl = ResolveTtl(resourceType, isNegative);
+        var stale = TimeSpan.FromMinutes(_options.StaleWindowMinutes);
+        return _cacheStore.SetAsync(key, value, ttl, stale, isNegative, cancellationToken);
+    }
+
+    public Task InvalidateRepositoryAsync(string provider, string owner, string repository, CancellationToken cancellationToken)
+    {
+        var prefix = string.Join(':', new[]
+        {
+            "modvox",
+            "cache",
+            string.Empty,
+            provider.Trim().ToLowerInvariant(),
+            owner.Trim().ToLowerInvariant(),
+            repository.Trim().ToLowerInvariant()
+        });
+
+        return _cacheStore.RemoveByPrefixAsync(prefix, cancellationToken);
+    }
+
+    private TimeSpan ResolveTtl(CacheResourceType resourceType, bool isNegative)
+    {
+        if (isNegative)
+        {
+            return TimeSpan.FromMinutes(_options.NegativeTtlMinutes);
+        }
+
+        return resourceType switch
+        {
+            CacheResourceType.Readme => TimeSpan.FromMinutes(_options.ReadmeTtlMinutes),
+            CacheResourceType.Images => TimeSpan.FromMinutes(_options.ImagesTtlMinutes),
+            CacheResourceType.Releases => TimeSpan.FromMinutes(_options.ReleasesTtlMinutes),
+            CacheResourceType.Listing => TimeSpan.FromMinutes(_options.ListingTtlMinutes),
+            CacheResourceType.Page => TimeSpan.FromMinutes(_options.PageTtlMinutes),
+            _ => TimeSpan.FromMinutes(5)
+        };
+    }
+}

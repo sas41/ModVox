@@ -1,0 +1,19 @@
+@page "/{gameId:guid}/{modId:guid}"
+@model ModVox.Web.Pages.ModModel
+@{
+    ViewData["Title"] = "Mod";
+}
+
+<section class="site-shell staff-card">
+    @if (Model.IsMissing)
+    {
+        <h1 class="md-heading md-h1">Mod Not Found</h1>
+    }
+    else
+    {
+        <h1 class="md-heading md-h1">@Model.Name</h1>
+        <p class="md-paragraph">Provider: @Model.Provider</p>
+        <p class="md-paragraph">README path: <code class="md-inline-code">@Model.ReadmePath</code></p>
+        <p class="md-paragraph">Changelog path: <code class="md-inline-code">@Model.ChangelogPath</code></p>
+    }
+</section>

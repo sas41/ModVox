@@ -1,0 +1,248 @@
+@page "/maintainer/edit/{modId:guid}"
+@model ModVox.Web.Pages.Maintainer.EditModModel
+@{
+    ViewData["Title"] = "Manage Mod";
+}
+
+<section class="site-shell staff-card staff-card-wide">
+    <h1 class="md-heading md-h1">@Model.Name</h1>
+    <p class="md-paragraph staff-muted">
+        @Model.Owner/@Model.Repository &mdash; @Model.GameName &mdash;
+        <span class="status-badge status-@Model.ModerationStatus">@Model.ModerationStatus</span>
+    </p>
+    <p class="md-paragraph"><code class="md-inline-code">@Model.ModId</code></p>
+
+    @if (Model.TagLabels.Count > 0)
+    {
+        <div class="staff-tag-row">
+            @foreach (var label in Model.TagLabels)
+            {
+                <span class="staff-tag-chip">@label</span>
+            }
+        </div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(Model.Description))
+    {
+        <p class="md-paragraph">@Model.Description</p>
+    }
+
+    @if (Model.Credits.Count > 0)
+    {
+        <div class="staff-panel">
+            <h2 class="md-heading md-h3">Credits</h2>
+            <ul class="md-list md-list-unordered">
+                @foreach (var credit in Model.Credits)
+                {
+                    <li class="md-list-item"><strong>@credit.Key</strong> — @credit.Text</li>
+                }
+            </ul>
+        </div>
+    }
+
+    @if (Model.IsUnverified)
+    {
+        <div class="staff-panel">
+            <h2 class="md-heading md-h3">Verification required</h2>
+            <p class="md-paragraph">
+                Your mod is unverified and not publicly visible. Add the token below to the
+                <code class="md-inline-code">verify</code> field in your
+                <code class="md-inline-code">@Model.ManifestFileName</code> and commit it,
+                then click <strong>Refresh Manifest</strong>.
+            </p>
+            <div class="staff-inline">
+                <code id="verify-token-display" class="md-inline-code key-display">@Model.VerifyToken</code>
+                <button id="copy-verify-token" class="staff-button staff-button-secondary" type="button">Copy</button>
+            </div>
+        </div>
+    }
+
+    <div class="staff-grid-2">
+        <div class="staff-panel">
+            <h2 class="md-heading md-h3">Manifest</h2>
+            <p class="md-paragraph staff-muted">
+                Re-reads <code class="md-inline-code">@Model.ManifestFileName</code> from the repository
+                and updates all mod metadata. If the <code class="md-inline-code">verify</code> token is
+                present and correct, the mod will be verified.
+            </p>
+            <div>
+                <label class="staff-label" for="refresh-ref">
+                    Ref / branch
+                    <span class="staff-muted">(optional — defaults to stored default_ref)</span>
+                </label>
+                <input class="staff-input" id="refresh-ref" placeholder="main" />
+            </div>
+            <button id="refresh-manifest" class="staff-button" type="button">Refresh Manifest</button>
+        </div>
+
+        <div class="staff-panel">
+            <h2 class="md-heading md-h3">Mod Key</h2>
+            <p class="md-paragraph">Status: <strong>@(Model.KeyActive ? "active" : "revoked")</strong></p>
+            <p class="md-paragraph staff-muted">
+                Rotating issues a new key and invalidates the old one immediately.
+                Revoking disables CI refreshes until the key is rotated again.
+            </p>
+            <div class="staff-inline">
+                <button id="rotate-key" class="staff-button" type="button">Rotate Key</button>
+                @if (Model.KeyActive)
+                {
+                    <button id="revoke-key" class="staff-button staff-button-secondary" type="button">Revoke Key</button>
+                }
+            </div>
+            <div id="new-key-reveal" hidden>
+                <p class="md-paragraph">New key — save it now, it will not be shown again:</p>
+                <div class="staff-inline">
+                    <code id="new-key-value" class="md-inline-code key-display"></code>
+                    <button id="copy-new-key" class="staff-button staff-button-secondary" type="button">Copy</button>
+                </div>
+            </div>
+        </div>
+
+        @if (!Model.IsUnverified)
+        {
+            <div class="staff-panel">
+                <h2 class="md-heading md-h3">Content Refresh</h2>
+                <p class="md-paragraph staff-muted">
+                    Trigger a manual content refresh to pull the latest README, changelog, and images.
+                    Subject to a per-mod cooldown.
+                </p>
+                <button id="trigger-refresh" class="staff-button" type="button">Trigger Content Refresh</button>
+                <div id="job-status-panel" hidden>
+                    <p class="md-paragraph">Job: <code id="job-id" class="md-inline-code"></code></p>
+                    <p class="md-paragraph">Status: <strong id="job-status-text"></strong></p>
+                    <button id="poll-job" class="staff-button staff-button-secondary" type="button">Check Status</button>
+                </div>
+            </div>
+        }
+
+        <div class="staff-panel">
+            <h2 class="md-heading md-h3">Stats</h2>
+            <p class="md-paragraph">Downloads: <strong>@Model.DownloadCount</strong></p>
+            @if (!Model.IsUnverified)
+            {
+                <p class="md-paragraph"><a class="md-link" href="/@Model.ModId">View public page</a></p>
+            }
+        </div>
+    </div>
+
+    <p id="edit-mod-status" class="staff-status" aria-live="polite"></p>
+
+    <p class="md-paragraph"><a class="md-link" href="/maintainer">Back to My Mods</a></p>
+</section>
+
+@section Scripts {
+<script>
+const modId = '@Model.ModId';
+const status = document.getElementById('edit-mod-status');
+
+async function post(path, payload) {
+    const r = await fetch(path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload ?? {})
+    });
+    if (!r.ok) throw new Error(r.status);
+    return r;
+}
+
+// Verify token copy
+document.getElementById('copy-verify-token')?.addEventListener('click', () => {
+    const text = document.getElementById('verify-token-display').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+        document.getElementById('copy-verify-token').textContent = 'Copied!';
+    });
+});
+
+// Refresh manifest
+document.getElementById('refresh-manifest').addEventListener('click', async () => {
+    status.textContent = 'Refreshing manifest...';
+    const ref = document.getElementById('refresh-ref').value.trim() || null;
+    const r = await fetch('/api/v1/mods/' + modId + '/manifest/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ref })
+    });
+    try {
+        const data = await r.json();
+        status.textContent = data.message ?? (r.ok ? 'Manifest refreshed.' : 'Failed to refresh manifest.');
+        if (r.ok && data.verified) {
+            setTimeout(() => window.location.reload(), 1500);
+        }
+    } catch {
+        status.textContent = r.ok ? 'Manifest refreshed.' : 'Failed to refresh manifest.';
+    }
+});
+
+// Rotate key
+const rotateBtn = document.getElementById('rotate-key');
+const newKeyReveal = document.getElementById('new-key-reveal');
+const newKeyValue = document.getElementById('new-key-value');
+
+rotateBtn?.addEventListener('click', async () => {
+    try {
+        const r = await post('/api/v1/mods/' + modId + '/keys/rotate');
+        const data = await r.json();
+        newKeyValue.textContent = data.new_key;
+        newKeyReveal.hidden = false;
+        status.textContent = 'Key rotated. Save the new key now.';
+    } catch {
+        status.textContent = 'Failed to rotate key.';
+    }
+});
+
+document.getElementById('copy-new-key')?.addEventListener('click', () => {
+    navigator.clipboard.writeText(newKeyValue.textContent).then(() => {
+        document.getElementById('copy-new-key').textContent = 'Copied!';
+    });
+});
+
+// Revoke key
+document.getElementById('revoke-key')?.addEventListener('click', async () => {
+    try {
+        await post('/api/v1/mods/' + modId + '/keys/revoke');
+        status.textContent = 'Key revoked. CI refreshes are disabled until you rotate.';
+        document.getElementById('revoke-key').disabled = true;
+    } catch {
+        status.textContent = 'Failed to revoke key.';
+    }
+});
+
+// Content refresh (only present when verified)
+const triggerRefreshBtn = document.getElementById('trigger-refresh');
+const jobStatusPanel = document.getElementById('job-status-panel');
+const jobIdEl = document.getElementById('job-id');
+const jobStatusText = document.getElementById('job-status-text');
+let currentJobId = null;
+
+triggerRefreshBtn?.addEventListener('click', async () => {
+    try {
+        status.textContent = 'Requesting content refresh...';
+        const r = await post('/api/v1/refresh/mod');
+        const data = await r.json();
+        currentJobId = data.job_id;
+        jobIdEl.textContent = currentJobId;
+        jobStatusText.textContent = data.status;
+        jobStatusPanel.hidden = false;
+        status.textContent = '';
+    } catch (err) {
+        status.textContent = err.message === '429'
+            ? 'Refresh on cooldown — try again later.'
+            : 'Failed to trigger content refresh.';
+    }
+});
+
+document.getElementById('poll-job')?.addEventListener('click', async () => {
+    if (!currentJobId) return;
+    try {
+        const r = await fetch('/api/v1/refresh/jobs/' + currentJobId);
+        if (!r.ok) { status.textContent = 'Job not found.'; return; }
+        const data = await r.json();
+        jobStatusText.textContent = data.status;
+        if (data.error) status.textContent = 'Error: ' + data.error;
+        else if (data.status === 'succeeded') status.textContent = 'Content refresh completed.';
+    } catch {
+        status.textContent = 'Failed to check job status.';
+    }
+});
+</script>
+}

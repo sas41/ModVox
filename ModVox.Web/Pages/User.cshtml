@@ -1,0 +1,17 @@
+@page "/user/{userId:guid}"
+@model ModVox.Web.Pages.UserModel
+@{
+    ViewData["Title"] = "User";
+}
+
+<section class="site-shell staff-card">
+    @if (Model.IsMissing)
+    {
+        <h1 class="md-heading md-h1">User Not Found</h1>
+    }
+    else
+    {
+        <h1 class="md-heading md-h1">@Model.DisplayName</h1>
+        <p class="md-paragraph">Username: @Model.Username</p>
+    }
+</section>
