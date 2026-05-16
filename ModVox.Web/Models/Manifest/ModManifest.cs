@@ -13,7 +13,8 @@ public sealed record ModManifest(
     string Changelog,
     string Images,
     IReadOnlyList<string> Tags,
-    IReadOnlyDictionary<string, string> Credits);
+    IReadOnlyDictionary<Guid, string> Credits,
+    IReadOnlyDictionary<string, string> ExternalCredits);
 
 /// <summary>
 /// Discriminated result of reading and parsing a manifest file from a repository.

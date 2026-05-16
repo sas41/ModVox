@@ -1,6 +1,8 @@
 namespace ModVox.Web.Providers;
 
 public sealed record RepositoryRelease(
-    string Tag,
+    string TagName,
+    string Name,
+    bool IsPrerelease,
     DateTimeOffset PublishedAt,
     IReadOnlyList<ReleaseArtifact> Artifacts);

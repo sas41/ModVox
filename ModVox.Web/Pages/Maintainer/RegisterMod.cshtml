@@ -15,6 +15,9 @@
                 Fill in all required fields: <code class="md-inline-code">name</code>, <code class="md-inline-code">default_ref</code>,
                 <code class="md-inline-code">readme</code>, <code class="md-inline-code">changelog</code>,
                 <code class="md-inline-code">images</code>, and <code class="md-inline-code">tags</code>.
+                Tag values should be text labels (not GUIDs).
+                Use <code class="md-inline-code">credits</code> for ModVox user IDs, and
+                <code class="md-inline-code">external_credits</code> for plain name-only credits.
             </li>
             <li class="md-list-item">
                 Submit the form below. We will read your <code class="md-inline-code">@Model.ManifestFileName</code> from the repository
@@ -32,6 +35,21 @@
         <button id="download-scaffold" class="staff-button staff-button-secondary" type="button">
             Download @Model.ManifestFileName
         </button>
+
+        @if (Model.TagLabels.Count > 0)
+        {
+            <hr class="staff-divider" />
+            <h2 class="md-heading md-h3">Available tag labels</h2>
+            <p class="md-paragraph staff-muted">
+                Use these text labels in the manifest <code class="md-inline-code">tags</code> array.
+            </p>
+            <div class="staff-tag-row">
+                @foreach (var label in Model.TagLabels)
+                {
+                    <span class="staff-tag-chip">@label</span>
+                }
+            </div>
+        }
     </div>
 
     <form id="register-mod-form" class="staff-form">
@@ -139,9 +157,9 @@ form.addEventListener('submit', async (e) => {
     status.textContent = 'Registering...';
 
     const payload = {
-        game_id: document.getElementById('game-id').value,
-        repository_url: document.getElementById('repository-url').value,
-        initial_ref: document.getElementById('initial-ref').value.trim() || null
+        gameId: document.getElementById('game-id').value,
+        repositoryUrl: document.getElementById('repository-url').value,
+        initialRef: document.getElementById('initial-ref').value.trim() || null
     };
 
     const r = await fetch('/api/v1/mods', {
@@ -154,7 +172,15 @@ form.addEventListener('submit', async (e) => {
         let msg = 'Registration failed (' + r.status + ').';
         try {
             const err = await r.json();
-            if (err.message) msg = err.message;
+            if (err.message) {
+                msg = err.message;
+                if (err.message.includes('None of the specified tags matched')) {
+                    const available = Array.from(document.querySelectorAll('.staff-tag-chip')).map(x => x.textContent).filter(Boolean);
+                    if (available.length > 0) {
+                        msg += ' Available tags: ' + available.join(', ');
+                    }
+                }
+            }
         } catch {}
         status.textContent = msg;
         return;
@@ -164,9 +190,9 @@ form.addEventListener('submit', async (e) => {
 
     form.hidden = true;
     document.getElementById('result-mod-name').textContent = data.name;
-    document.getElementById('verify-token-value').textContent = data.verify_token;
+    document.getElementById('verify-token-value').textContent = data.verifyToken;
     document.getElementById('mod-key-value').textContent = data.key;
-    document.getElementById('manage-mod-link').href = '/maintainer/edit/' + data.mod_id;
+    document.getElementById('manage-mod-link').href = '/maintainer/edit/' + data.modId;
     resultPanel.hidden = false;
     status.textContent = '';
 });

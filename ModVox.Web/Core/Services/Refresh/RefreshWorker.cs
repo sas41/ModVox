@@ -7,22 +7,16 @@ namespace ModVox.Web.Refresh;
 public sealed class RefreshWorker : BackgroundService
 {
     private readonly IRefreshQueue _queue;
-    private readonly IRefreshJobRepository _jobRepository;
-    private readonly IModRepository _modRepository;
-    private readonly IContentSyncService _contentSyncService;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<RefreshWorker> _logger;
 
     public RefreshWorker(
         IRefreshQueue queue,
-        IRefreshJobRepository jobRepository,
-        IModRepository modRepository,
-        IContentSyncService contentSyncService,
+        IServiceScopeFactory scopeFactory,
         ILogger<RefreshWorker> logger)
     {
         _queue = queue;
-        _jobRepository = jobRepository;
-        _modRepository = modRepository;
-        _contentSyncService = contentSyncService;
+        _scopeFactory = scopeFactory;
         _logger = logger;
     }
 
@@ -32,45 +26,43 @@ public sealed class RefreshWorker : BackgroundService
         {
             var job = await _queue.DequeueAsync(stoppingToken);
 
+            await using var scope = _scopeFactory.CreateAsyncScope();
+            var jobRepository = scope.ServiceProvider.GetRequiredService<IRefreshJobRepository>();
+            var modRepository = scope.ServiceProvider.GetRequiredService<IModRepository>();
+            var contentSyncService = scope.ServiceProvider.GetRequiredService<IContentSyncService>();
+
             try
             {
                 job.Status = RefreshJobStatus.Running;
                 job.StartedAt = DateTimeOffset.UtcNow;
-                await _jobRepository.UpdateAsync(job, stoppingToken);
+                await jobRepository.UpdateAsync(job, stoppingToken);
 
-                var mod = await _modRepository.GetByIdAsync(job.ModId, stoppingToken);
+                var mod = await modRepository.GetByIdAsync(job.ModId, stoppingToken);
                 if (mod is null)
                 {
                     job.Status = RefreshJobStatus.Failed;
                     job.Error = "Mod not found.";
                     job.CompletedAt = DateTimeOffset.UtcNow;
-                    await _jobRepository.UpdateAsync(job, stoppingToken);
+                    await jobRepository.UpdateAsync(job, stoppingToken);
                     continue;
                 }
 
-                if (string.Equals(mod.ModerationStatus, ModModerationStatus.Unverified, StringComparison.OrdinalIgnoreCase))
+                var result = await contentSyncService.SyncAsync(mod, stoppingToken);
+
+                if (!string.Equals(result.Status, "updated", StringComparison.OrdinalIgnoreCase))
                 {
                     job.Status = RefreshJobStatus.Failed;
-                    job.Error = "Mod is not verified. Add the verify token to your manifest and use Refresh Manifest to verify first.";
+                    job.Error = result.Message ?? "Refresh failed.";
+                    job.Result = result.Status;
                     job.CompletedAt = DateTimeOffset.UtcNow;
-                    await _jobRepository.UpdateAsync(job, stoppingToken);
+                    await jobRepository.UpdateAsync(job, stoppingToken);
                     continue;
                 }
 
-                var result = await _contentSyncService.SyncAsync(mod, stoppingToken);
-
-                var updatedMod = mod with
-                {
-                    LastAcceptedRefreshAt = DateTimeOffset.UtcNow,
-                    UpdatedAt = DateTimeOffset.UtcNow
-                };
-
-                await _modRepository.UpdateAsync(updatedMod, stoppingToken);
-
                 job.Status = RefreshJobStatus.Succeeded;
-                job.Result = result.Status;
+                job.Result = $"{result.Status}:releases={result.ReleasesUpserted}";
                 job.CompletedAt = DateTimeOffset.UtcNow;
-                await _jobRepository.UpdateAsync(job, stoppingToken);
+                await jobRepository.UpdateAsync(job, stoppingToken);
             }
             catch (Exception ex)
             {
@@ -78,7 +70,10 @@ public sealed class RefreshWorker : BackgroundService
                 job.Status = RefreshJobStatus.Failed;
                 job.Error = ex.Message;
                 job.CompletedAt = DateTimeOffset.UtcNow;
-                await _jobRepository.UpdateAsync(job, stoppingToken);
+
+                await using var errorScope = _scopeFactory.CreateAsyncScope();
+                var errorJobRepo = errorScope.ServiceProvider.GetRequiredService<IRefreshJobRepository>();
+                await errorJobRepo.UpdateAsync(job, stoppingToken);
             }
         }
     }

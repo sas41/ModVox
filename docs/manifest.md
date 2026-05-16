@@ -19,7 +19,7 @@ Configured per instance via `Manifest:FileName` (default: `modvox.json`).
   "images": "images",
   "tags": ["tag-label"],
   "credits": {
-    "contributor-name": "What they did"
+    "00000000-0000-0000-0000-000000000000": "What they did"
   }
 }
 ```
@@ -30,7 +30,7 @@ Optional fields: `description`, `credits`, `verify`.
 ## Rules
 
 - `tags` labels are matched case-insensitively against server tags. Unknown labels are silently ignored. At least one must resolve.
-- `credits` keys are free-form strings (e.g. GitHub usernames). No server-side validation.
+- `credits` keys are ModVox user IDs (GUIDs). Any key that is not a valid GUID is silently ignored.
 - `verify` is a server-generated ownership token. When present and matching the stored token the mod transitions from `unverified` to `pending`.
 - Manifest is read at registration time and on every **Refresh Manifest** action.
 - `default_ref` sets the branch for all subsequent content fetches. It can be overridden per-request via an explicit `ref` parameter on the Refresh Manifest endpoint.

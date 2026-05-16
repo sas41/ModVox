@@ -1,19 +1,247 @@
 @page "/{gameId:guid}/{modId:guid}"
 @model ModVox.Web.Pages.ModModel
 @{
-    ViewData["Title"] = "Mod";
+    ViewData["Title"] = Model.IsMissing ? "Mod" : Model.Name;
 }
 
-<section class="site-shell staff-card">
+<section class="site-shell staff-card staff-card-wide mod-page">
     @if (Model.IsMissing)
     {
         <h1 class="md-heading md-h1">Mod Not Found</h1>
     }
     else
     {
+        <p class="mod-game-name">@Model.GameName</p>
         <h1 class="md-heading md-h1">@Model.Name</h1>
-        <p class="md-paragraph">Provider: @Model.Provider</p>
-        <p class="md-paragraph">README path: <code class="md-inline-code">@Model.ReadmePath</code></p>
-        <p class="md-paragraph">Changelog path: <code class="md-inline-code">@Model.ChangelogPath</code></p>
+
+        @if (!string.IsNullOrWhiteSpace(Model.Description))
+        {
+            <p class="md-paragraph">@Model.Description</p>
+        }
+
+        @if (Model.ImageUrls.Count > 0)
+        {
+            <div class="mod-carousel" id="mod-carousel">
+                <button type="button" class="staff-button staff-button-secondary mod-carousel-nav" id="carousel-prev">Prev</button>
+                <div class="mod-carousel-track" id="carousel-track">
+                    @foreach (var url in Model.ImageUrls)
+                    {
+                        <img src="@url" alt="Mod image" class="mod-carousel-image" loading="lazy" />
+                    }
+                </div>
+                <button type="button" class="staff-button staff-button-secondary mod-carousel-nav" id="carousel-next">Next</button>
+            </div>
+        }
+
+        <div class="staff-inline mod-meta-links">
+            <a class="md-link" href="@Model.CreatorProfileUrl">@Model.CreatorDisplayName</a>
+            @if (!string.IsNullOrWhiteSpace(Model.RepoUrl))
+            {
+                <a class="md-link" href="@Model.RepoUrl" target="_blank" rel="noopener noreferrer">Repository</a>
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.DiscussionsUrl))
+            {
+                <a class="md-link" href="@Model.DiscussionsUrl" target="_blank" rel="noopener noreferrer">Discussions</a>
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.IssuesUrl))
+            {
+                <a class="md-link" href="@Model.IssuesUrl" target="_blank" rel="noopener noreferrer">Issues</a>
+            }
+        </div>
+
+        <div class="staff-panel">
+            <div class="staff-inline" style="margin-bottom: 1rem;">
+                <button class="staff-button tab-btn" data-tab="readme" type="button">ReadMe</button>
+                <button class="staff-button staff-button-secondary tab-btn" data-tab="changelog" type="button">ChangeLog</button>
+                <button class="staff-button staff-button-secondary tab-btn" data-tab="credits" type="button">Credits</button>
+                <button class="staff-button staff-button-secondary tab-btn" data-tab="download" type="button">Download</button>
+            </div>
+
+            <div id="tab-readme" class="tab-pane">
+                @if (string.IsNullOrWhiteSpace(Model.ReadmeHtml))
+                {
+                    <p class="md-paragraph staff-muted">ReadMe is not available yet. Trigger a mod refresh.</p>
+                }
+                else
+                {
+                    @Html.Raw(Model.ReadmeHtml)
+                }
+            </div>
+
+            <div id="tab-changelog" class="tab-pane" hidden>
+                @if (string.IsNullOrWhiteSpace(Model.ChangelogHtml))
+                {
+                    <p class="md-paragraph staff-muted">ChangeLog is not available yet. Trigger a mod refresh.</p>
+                }
+                else
+                {
+                    @Html.Raw(Model.ChangelogHtml)
+                }
+            </div>
+
+            <div id="tab-credits" class="tab-pane" hidden>
+                @if (Model.Credits.Count == 0)
+                {
+                    <p class="md-paragraph staff-muted">No credits listed.</p>
+                }
+                else
+                {
+                    <ul class="md-list md-list-unordered">
+                        @foreach (var credit in Model.Credits)
+                        {
+                            <li class="md-list-item">
+                                @if (string.IsNullOrWhiteSpace(credit.Url))
+                                {
+                                    <strong>@credit.Name</strong>
+                                }
+                                else
+                                {
+                                    <a class="md-link" href="@credit.Url">@credit.Name</a>
+                                }
+                                <span> - @credit.Role</span>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+
+            <div id="tab-download" class="tab-pane" hidden>
+                @if (Model.Releases.Count == 0)
+                {
+                    <p class="md-paragraph staff-muted">No versions are available yet.</p>
+                }
+                else
+                {
+                    <table class="staff-table">
+                        <thead>
+                            <tr>
+                                <th>Version</th>
+                                <th>Published</th>
+                                <th>Files</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var release in Model.Releases)
+                            {
+                                <tr>
+                                    <td>
+                                        <code class="md-inline-code">@release.TagName</code>
+                                        @if (release.IsPrerelease)
+                                        {
+                                            <span class="status-badge status-pending">pre-release</span>
+                                        }
+                                    </td>
+                                    <td class="staff-muted">@release.PublishedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                                    <td>
+                                        <ul class="md-list md-list-unordered">
+                                            @foreach (var artifact in release.Artifacts)
+                                            {
+                                                <li class="md-list-item">
+                                                    <a class="md-link" href="@artifact.DownloadUrl">@artifact.FileName</a>
+                                                    <span class="staff-muted">(@artifact.Size bytes)</span>
+                                                </li>
+                                            }
+                                        </ul>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
     }
 </section>
+
+@section Scripts {
+<script>
+const tabs = ['readme', 'changelog', 'credits', 'download'];
+
+function setActive(tab) {
+    for (const t of tabs) {
+        const pane = document.getElementById('tab-' + t);
+        const btn = document.querySelector(`.tab-btn[data-tab="${t}"]`);
+        if (!pane || !btn) continue;
+        const active = t === tab;
+        pane.hidden = !active;
+        btn.classList.toggle('staff-button-secondary', !active);
+    }
+}
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => setActive(btn.dataset.tab));
+});
+
+setActive('readme');
+
+const track = document.getElementById('carousel-track');
+const prev = document.getElementById('carousel-prev');
+const next = document.getElementById('carousel-next');
+
+function scrollCarousel(direction) {
+    if (!track) return;
+    const amount = Math.max(280, track.clientWidth * 0.8) * direction;
+    track.scrollBy({ left: amount, behavior: 'smooth' });
+}
+
+prev?.addEventListener('click', () => scrollCarousel(-1));
+next?.addEventListener('click', () => scrollCarousel(1));
+</script>
+
+<style>
+.mod-game-name {
+    font-size: 0.85rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #6b7280;
+    margin-bottom: 0.25rem;
+}
+
+.mod-meta-links {
+    gap: 0.85rem;
+    align-items: center;
+    margin: 0.9rem 0 1.1rem;
+    flex-wrap: wrap;
+}
+
+.mod-carousel {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 1rem 0;
+}
+
+.mod-carousel-track {
+    display: flex;
+    gap: 0.75rem;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding: 0.2rem;
+}
+
+.mod-carousel-image {
+    height: 260px;
+    width: auto;
+    max-width: 100%;
+    object-fit: contain;
+    border-radius: 0.5rem;
+    background: #f4f4f5;
+    scroll-snap-align: center;
+}
+
+@@media (max-width: 800px) {
+    .mod-carousel {
+        grid-template-columns: 1fr;
+    }
+
+    .mod-carousel-nav {
+        width: 100%;
+    }
+
+    .mod-carousel-image {
+        height: 200px;
+    }
+}
+</style>
+}

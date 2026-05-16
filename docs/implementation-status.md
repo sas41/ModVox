@@ -3,17 +3,18 @@
 ## Implemented
 
 ### Infrastructure
-- One-class-per-endpoint pattern across the full API surface (48 endpoints).
+- One-class-per-endpoint pattern across the full API surface (52 endpoints).
 - Razor Pages for all website routes (public, staff, account, maintainer).
 - ASP.NET cookie-based account sessions with `HttpOnly`, `Secure`, `SameSite=Lax`, 8-hour TTL.
 - Per-user `session_version` with revoke-all semantics.
 - RBAC: `admin`, `moderator`, `maintainer`, `user`.
 - Ban model (temporary/permanent) enforced at login and write actions.
-- In-memory repositories for all entities (pending Postgres migration).
+- EF Core (code-first) with Npgsql for all entity persistence; `record class` entities with navigation properties.
+- In-memory repository implementations retained as fallback/dev stubs.
 - In-memory cache store (pending Valkey migration).
 - Async refresh queue/worker with idempotency key and coalescing support.
 - Cache coordinator and key factory (`provider:owner:repo:ref:path` schema).
-- Structured source layout: `Core/`, `Controllers/`, `Pages/`, `Models/`, `wwwroot/`.
+- Structured source layout: `Core/`, `Controllers/`, `Pages/`, `Models/`, `Infrastructure/`, `wwwroot/`.
 
 ### Manifest System
 - `modvox.json` manifest schema with required and optional fields.
@@ -101,7 +102,6 @@
 
 ## Not Yet Implemented
 
-- **PostgreSQL-backed repositories** — all repositories are currently in-memory.
 - **Valkey-backed cache store** — current cache store is in-memory.
 - **Durable session storage** — sessions are in-memory; lost on restart.
 - **Durable audit log** — audit log is in-memory; lost on restart.

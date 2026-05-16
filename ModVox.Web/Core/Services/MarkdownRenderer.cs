@@ -1,110 +1,63 @@
-using System.Net;
-using System.Text;
-using System.Text.RegularExpressions;
+using Ganss.Xss;
+using Markdig;
 
 namespace ModVox.Web.Services;
 
 public sealed class MarkdownRenderer : IMarkdownRenderer
 {
-    private static readonly Regex HeaderRegex = new("^#{1,6}\\s+", RegexOptions.Compiled);
-    private static readonly Regex UnorderedListRegex = new("^[-*]\\s+", RegexOptions.Compiled);
-    private static readonly Regex OrderedListRegex = new("^\\d+\\.\\s+", RegexOptions.Compiled);
-    private static readonly Regex InlineCodeRegex = new("`([^`]+)`", RegexOptions.Compiled);
-    private static readonly Regex LinkRegex = new("\\[([^\\]]+)\\]\\(([^)]+)\\)", RegexOptions.Compiled);
+    private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder()
+        .UseAdvancedExtensions()
+        .Build();
+
+    private readonly HtmlSanitizer _sanitizer;
+
+    public MarkdownRenderer()
+    {
+        _sanitizer = new HtmlSanitizer();
+
+        _sanitizer.AllowedSchemes.Clear();
+        _sanitizer.AllowedSchemes.Add("http");
+        _sanitizer.AllowedSchemes.Add("https");
+
+        _sanitizer.AllowedTags.Add("h1");
+        _sanitizer.AllowedTags.Add("h2");
+        _sanitizer.AllowedTags.Add("h3");
+        _sanitizer.AllowedTags.Add("h4");
+        _sanitizer.AllowedTags.Add("h5");
+        _sanitizer.AllowedTags.Add("h6");
+        _sanitizer.AllowedTags.Add("p");
+        _sanitizer.AllowedTags.Add("ul");
+        _sanitizer.AllowedTags.Add("ol");
+        _sanitizer.AllowedTags.Add("li");
+        _sanitizer.AllowedTags.Add("a");
+        _sanitizer.AllowedTags.Add("img");
+        _sanitizer.AllowedTags.Add("code");
+        _sanitizer.AllowedTags.Add("pre");
+        _sanitizer.AllowedTags.Add("blockquote");
+        _sanitizer.AllowedTags.Add("hr");
+        _sanitizer.AllowedTags.Add("table");
+        _sanitizer.AllowedTags.Add("thead");
+        _sanitizer.AllowedTags.Add("tbody");
+        _sanitizer.AllowedTags.Add("tr");
+        _sanitizer.AllowedTags.Add("th");
+        _sanitizer.AllowedTags.Add("td");
+        _sanitizer.AllowedTags.Add("strong");
+        _sanitizer.AllowedTags.Add("em");
+        _sanitizer.AllowedTags.Add("del");
+    }
 
     public string RenderToSafeHtml(string markdown)
     {
-        var lines = markdown.Replace("\r", string.Empty).Split('\n');
-        var sb = new StringBuilder();
-        var inUnorderedList = false;
-        var inOrderedList = false;
+        if (string.IsNullOrWhiteSpace(markdown))
+            return string.Empty;
 
-        foreach (var rawLine in lines)
-        {
-            if (string.IsNullOrWhiteSpace(rawLine))
-            {
-                CloseLists(sb, ref inUnorderedList, ref inOrderedList);
-                continue;
-            }
-
-            if (HeaderRegex.IsMatch(rawLine))
-            {
-                CloseLists(sb, ref inUnorderedList, ref inOrderedList);
-                var level = rawLine.TakeWhile(ch => ch == '#').Count();
-                level = Math.Clamp(level, 1, 6);
-                var text = RenderInline(rawLine.TrimStart('#', ' '));
-                sb.Append($"<h{level} class=\"md-heading md-h{level}\">{text}</h{level}>");
-                continue;
-            }
-
-            if (UnorderedListRegex.IsMatch(rawLine))
-            {
-                if (inOrderedList)
-                {
-                    sb.Append("</ol>");
-                    inOrderedList = false;
-                }
-
-                if (!inUnorderedList)
-                {
-                    sb.Append("<ul class=\"md-list md-list-unordered\">");
-                    inUnorderedList = true;
-                }
-
-                var listText = RenderInline(UnorderedListRegex.Replace(rawLine, string.Empty, 1));
-                sb.Append($"<li class=\"md-list-item\">{listText}</li>");
-                continue;
-            }
-
-            if (OrderedListRegex.IsMatch(rawLine))
-            {
-                if (inUnorderedList)
-                {
-                    sb.Append("</ul>");
-                    inUnorderedList = false;
-                }
-
-                if (!inOrderedList)
-                {
-                    sb.Append("<ol class=\"md-list md-list-ordered\">");
-                    inOrderedList = true;
-                }
-
-                var listText = OrderedListRegex.Replace(rawLine, string.Empty, 1);
-                sb.Append($"<li class=\"md-list-item\">{RenderInline(listText)}</li>");
-            }
-            else
-            {
-                CloseLists(sb, ref inUnorderedList, ref inOrderedList);
-                sb.Append($"<p class=\"md-paragraph\">{RenderInline(rawLine)}</p>");
-            }
-        }
-
-        CloseLists(sb, ref inUnorderedList, ref inOrderedList);
-
-        return sb.ToString();
+        var rendered = Markdown.ToHtml(markdown, Pipeline);
+        var sanitized = _sanitizer.Sanitize(rendered);
+        return RewriteRelativeLinks(sanitized);
     }
 
-    private static string RenderInline(string raw)
+    private static string RewriteRelativeLinks(string html)
     {
-        var encoded = WebUtility.HtmlEncode(raw);
-        var withCode = InlineCodeRegex.Replace(encoded, "<code class=\"md-inline-code\">$1</code>");
-        var withLinks = LinkRegex.Replace(withCode, "<a class=\"md-link\" href=\"$2\" target=\"_blank\" rel=\"noopener noreferrer\">$1</a>");
-        return withLinks;
-    }
-
-    private static void CloseLists(StringBuilder sb, ref bool inUnorderedList, ref bool inOrderedList)
-    {
-        if (inUnorderedList)
-        {
-            sb.Append("</ul>");
-            inUnorderedList = false;
-        }
-
-        if (inOrderedList)
-        {
-            sb.Append("</ol>");
-            inOrderedList = false;
-        }
+        return html;
     }
 }

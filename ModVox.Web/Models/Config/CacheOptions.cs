@@ -5,6 +5,7 @@ public sealed class CacheOptions
     public const string SectionName = "Cache";
 
     public int ReadmeTtlMinutes { get; set; } = 30;
+    public int ChangelogTtlMinutes { get; set; } = 30;
     public int ImagesTtlMinutes { get; set; } = 15;
     public int ReleasesTtlMinutes { get; set; } = 10;
     public int ListingTtlMinutes { get; set; } = 5;

@@ -45,7 +45,7 @@ public sealed class EditModModel : PageModel
     public bool KeyActive { get; private set; }
     public long DownloadCount { get; private set; }
     public List<string> TagLabels { get; } = new();
-    public List<(string Key, string Text)> Credits { get; } = new();
+    public List<(Guid UserId, string Text)> Credits { get; } = new();
 
     public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken)
     {

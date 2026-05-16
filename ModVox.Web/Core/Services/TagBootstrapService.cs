@@ -19,10 +19,6 @@ public sealed class TagBootstrapService : ITagBootstrapService
     public async Task EnsureSeededAsync(CancellationToken cancellationToken)
     {
         var existing = await _tagRepository.ListAsync(cancellationToken);
-        if (existing.Count > 0)
-        {
-            return;
-        }
 
         var labels = _tagOptions.Value.DefaultSeedLabels
             .Where(x => !string.IsNullOrWhiteSpace(x))
@@ -30,9 +26,20 @@ public sealed class TagBootstrapService : ITagBootstrapService
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
+        var existingLabels = existing
+            .Select(t => t.Label)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x.Trim())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
         var now = DateTimeOffset.UtcNow;
         foreach (var label in labels)
         {
+            if (existingLabels.Contains(label))
+            {
+                continue;
+            }
+
             await _tagRepository.AddAsync(new TagRecord(Guid.NewGuid(), label, now, now), cancellationToken);
         }
     }

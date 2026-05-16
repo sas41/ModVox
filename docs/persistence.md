@@ -30,7 +30,7 @@ Ownership rules:
 | `default_ref` | branch for content fetches |
 | `name` | from manifest |
 | `description` | from manifest, optional |
-| `credits` | free-form string dictionary |
+| `credits` | `Guid→string` map; keys are ModVox user IDs |
 | `readme_path` | from manifest |
 | `changelog_path` | from manifest |
 | `images_folder` | from manifest |

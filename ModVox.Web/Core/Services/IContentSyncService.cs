@@ -7,4 +7,9 @@ public interface IContentSyncService
     Task<ContentSyncResult> SyncAsync(ModRecord mod, CancellationToken cancellationToken);
 }
 
-public sealed record ContentSyncResult(string Status, string? Message);
+public sealed record ContentSyncResult(
+    string Status,
+    string? Message,
+    int ReleasesUpserted,
+    string? Step,
+    string? ErrorCode);

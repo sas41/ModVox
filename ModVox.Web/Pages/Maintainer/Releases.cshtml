@@ -1,0 +1,163 @@
+@page "/maintainer/edit/{modId:guid}/releases"
+@model ModVox.Web.Pages.Maintainer.ReleasesModel
+@{
+    ViewData["Title"] = "Releases — " + Model.ModName;
+}
+
+<section class="site-shell staff-card staff-card-wide">
+    <h1 class="md-heading md-h1">Releases</h1>
+    <p class="md-paragraph staff-muted">
+        <strong>@Model.ModName</strong> &mdash; <code class="md-inline-code">@Model.ModId</code>
+    </p>
+    <p class="md-paragraph">
+        You can hide releases to remove them from public view without permanently deleting them.
+    </p>
+    @if (Model.IsAdmin)
+    {
+        <p class="md-paragraph">As an admin, you can also permanently delete releases.</p>
+    }
+
+    @if (Model.Releases.Count == 0)
+    {
+        <p class="md-paragraph staff-muted">No releases found for this mod.</p>
+    }
+    else
+    {
+        <table class="staff-table">
+            <thead>
+                <tr>
+                    <th>Tag</th>
+                    <th>Name</th>
+                    <th>Published</th>
+                    <th>Files</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="releases-tbody">
+                @foreach (var r in Model.Releases)
+                {
+                    <tr id="row-@r.ReleaseId" class="@(r.IsHidden ? "staff-row-hidden" : "")">
+                        <td><code class="md-inline-code">@r.TagName</code></td>
+                        <td>@r.Name</td>
+                        <td class="staff-muted">@r.PublishedAt.ToString("yyyy-MM-dd")</td>
+                        <td>@r.ArtifactCount</td>
+                        <td>
+                            @if (r.IsPrerelease)
+                            {
+                                <span class="status-badge status-pending">pre-release</span>
+                            }
+                            @if (r.IsHidden)
+                            {
+                                <span class="status-badge status-hidden">hidden</span>
+                            }
+                            else
+                            {
+                                <span class="status-badge status-approved">visible</span>
+                            }
+                        </td>
+                        <td class="staff-inline">
+                            @if (r.IsHidden)
+                            {
+                                <button class="staff-button staff-button-secondary staff-action-btn"
+                                        data-action="unhide" data-release-id="@r.ReleaseId">Unhide</button>
+                            }
+                            else
+                            {
+                                <button class="staff-button staff-button-secondary staff-action-btn"
+                                        data-action="hide" data-release-id="@r.ReleaseId">Hide</button>
+                            }
+                            @if (Model.IsAdmin)
+                            {
+                                <button class="staff-button staff-button-danger staff-action-btn"
+                                        data-action="delete" data-release-id="@r.ReleaseId">Delete</button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    <p id="releases-status" class="staff-status" aria-live="polite"></p>
+    <p class="md-paragraph"><a class="md-link" href="/maintainer/edit/@Model.ModId">Back to mod</a></p>
+</section>
+
+@section Scripts {
+<script>
+const status = document.getElementById('releases-status');
+
+async function releaseAction(releaseId, action) {
+    const method = action === 'delete' ? 'DELETE' : 'POST';
+    const url = action === 'delete'
+        ? `/api/v1/releases/${releaseId}`
+        : `/api/v1/releases/${releaseId}/${action}`;
+
+    const r = await fetch(url, { method });
+    if (!r.ok) {
+        status.textContent = `Failed: ${r.status}`;
+        return;
+    }
+
+    const row = document.getElementById('row-' + releaseId);
+    if (!row) return;
+
+    if (action === 'delete') {
+        row.remove();
+        status.textContent = 'Release deleted permanently.';
+        return;
+    }
+
+    const data = await r.json();
+    const isHidden = data.is_hidden;
+    row.className = isHidden ? 'staff-row-hidden' : '';
+
+    const btn = row.querySelector(`[data-action="${action}"]`);
+    if (btn) {
+        btn.dataset.action = isHidden ? 'unhide' : 'hide';
+        btn.textContent = isHidden ? 'Unhide' : 'Hide';
+    }
+
+    const statusCell = row.cells[4];
+    const hiddenBadge = statusCell.querySelector('.status-hidden');
+    const visibleBadge = statusCell.querySelector('.status-approved');
+
+    if (isHidden) {
+        if (!hiddenBadge) {
+            const b = document.createElement('span');
+            b.className = 'status-badge status-hidden';
+            b.textContent = 'hidden';
+            statusCell.appendChild(b);
+        }
+        visibleBadge?.remove();
+    } else {
+        hiddenBadge?.remove();
+        if (!visibleBadge) {
+            const b = document.createElement('span');
+            b.className = 'status-badge status-approved';
+            b.textContent = 'visible';
+            statusCell.appendChild(b);
+        }
+    }
+
+    status.textContent = isHidden ? 'Release hidden.' : 'Release unhidden.';
+}
+
+document.getElementById('releases-tbody')?.addEventListener('click', async e => {
+    const btn = e.target.closest('.staff-action-btn');
+    if (!btn) return;
+
+    const action = btn.dataset.action;
+    const releaseId = btn.dataset.releaseId;
+
+    if (action === 'delete' && !confirm('Permanently delete this release and all its files? This cannot be undone.')) return;
+
+    btn.disabled = true;
+    try {
+        await releaseAction(releaseId, action);
+    } finally {
+        btn.disabled = false;
+    }
+});
+</script>
+}

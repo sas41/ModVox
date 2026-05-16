@@ -1,0 +1,210 @@
+@page "/staff/releases"
+@model ModVox.Web.Pages.Staff.ReleasesModel
+@{
+    ViewData["Title"] = "Releases";
+}
+
+<section class="site-shell staff-card staff-card-wide">
+    <h1 class="md-heading md-h1">Releases</h1>
+    <p class="md-paragraph staff-muted">
+        Search and moderate mod releases.
+        Moderators can hide and unhide. Admins can also delete permanently.
+    </p>
+
+    <form method="get" class="staff-filter-form">
+        <div class="staff-filter-row">
+            <div class="staff-filter-field">
+                <label class="staff-label" for="TagFilter">Tag / version</label>
+                <input class="staff-input" id="TagFilter" name="TagFilter" value="@Model.TagFilter" placeholder="e.g. v1.0.0" />
+            </div>
+            <div class="staff-filter-field">
+                <label class="staff-label" for="ModFilter">Mod name</label>
+                <input class="staff-input" id="ModFilter" name="ModFilter" value="@Model.ModFilter" placeholder="Partial name" />
+            </div>
+            <div class="staff-filter-field">
+                <label class="staff-label" for="GameFilter">Game</label>
+                <select class="staff-select" id="GameFilter" name="GameFilter">
+                    <option value="">All games</option>
+                    @foreach (var g in Model.Games)
+                    {
+                        if (Model.GameFilter == g.GameId)
+                        {
+                            <option value="@g.GameId" selected="selected">@g.Name</option>
+                        }
+                        else
+                        {
+                            <option value="@g.GameId">@g.Name</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="staff-filter-field">
+                <label class="staff-label" for="PrereleaseFilter">Pre-release</label>
+                <select class="staff-select" id="PrereleaseFilter" name="PrereleaseFilter">
+                    <option value="" selected="@(string.IsNullOrEmpty(Model.PrereleaseFilter) ? "selected" : null)">Any</option>
+                    <option value="yes" selected="@(Model.PrereleaseFilter == "yes" ? "selected" : null)">Yes</option>
+                    <option value="no" selected="@(Model.PrereleaseFilter == "no" ? "selected" : null)">No</option>
+                </select>
+            </div>
+            <div class="staff-filter-field">
+                <label class="staff-label" for="HiddenFilter">Visibility</label>
+                <select class="staff-select" id="HiddenFilter" name="HiddenFilter">
+                    <option value="" selected="@(string.IsNullOrEmpty(Model.HiddenFilter) ? "selected" : null)">Any</option>
+                    <option value="no" selected="@(Model.HiddenFilter == "no" ? "selected" : null)">Visible</option>
+                    <option value="yes" selected="@(Model.HiddenFilter == "yes" ? "selected" : null)">Hidden</option>
+                </select>
+            </div>
+        </div>
+        <div class="staff-inline">
+            <button class="staff-button" type="submit">Search</button>
+            <a class="staff-button staff-button-secondary" href="/staff/releases">Clear</a>
+        </div>
+    </form>
+
+    <p class="md-paragraph staff-muted">
+        Showing @Model.Releases.Count of @Model.TotalCount release(s).
+    </p>
+
+    @if (Model.Releases.Count == 0)
+    {
+        <p class="md-paragraph staff-muted">No releases match the current filters.</p>
+    }
+    else
+    {
+        <table class="staff-table">
+            <thead>
+                <tr>
+                    <th>Mod</th>
+                    <th>Tag</th>
+                    <th>Name</th>
+                    <th>Published</th>
+                    <th>Files</th>
+                    <th>Flags</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="releases-tbody">
+                @foreach (var r in Model.Releases)
+                {
+                    <tr id="row-@r.ReleaseId" class="@(r.IsHidden ? "staff-row-hidden" : "")">
+                        <td><a class="md-link" href="/maintainer/edit/@r.ModId">@r.ModName</a></td>
+                        <td><code class="md-inline-code">@r.TagName</code></td>
+                        <td>@r.Name</td>
+                        <td class="staff-muted">@r.PublishedAt.ToString("yyyy-MM-dd")</td>
+                        <td>@r.ArtifactCount</td>
+                        <td>
+                            @if (r.IsPrerelease)
+                            {
+                                <span class="status-badge status-pending">pre-release</span>
+                            }
+                            @if (r.IsHidden)
+                            {
+                                <span class="status-badge status-hidden">hidden</span>
+                            }
+                        </td>
+                        <td class="staff-inline">
+                            @if (r.IsHidden)
+                            {
+                                <button class="staff-button staff-button-secondary staff-action-btn"
+                                        data-action="unhide" data-release-id="@r.ReleaseId">Unhide</button>
+                            }
+                            else
+                            {
+                                <button class="staff-button staff-button-secondary staff-action-btn"
+                                        data-action="hide" data-release-id="@r.ReleaseId">Hide</button>
+                            }
+                            @if (Model.IsAdmin)
+                            {
+                                <button class="staff-button staff-button-danger staff-action-btn"
+                                        data-action="delete" data-release-id="@r.ReleaseId">Delete</button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        @if (Model.TotalPages > 1)
+        {
+            <div class="staff-pagination">
+                @for (int p = 1; p <= Model.TotalPages; p++)
+                {
+                    var qs = $"?TagFilter={Model.TagFilter}&ModFilter={Model.ModFilter}&GameFilter={Model.GameFilter}&PrereleaseFilter={Model.PrereleaseFilter}&HiddenFilter={Model.HiddenFilter}&PageNum={p}";
+                    <a class="staff-page-link @(p == Model.PageNum ? "staff-page-link-active" : "")"
+                       href="/staff/releases@qs">@p</a>
+                }
+            </div>
+        }
+    }
+
+    <p id="releases-status" class="staff-status" aria-live="polite"></p>
+    <p class="md-paragraph"><a class="md-link" href="/staff">Back to staff</a></p>
+</section>
+
+@section Scripts {
+<script>
+const status = document.getElementById('releases-status');
+
+async function releaseAction(releaseId, action) {
+    const method = action === 'delete' ? 'DELETE' : 'POST';
+    const url = action === 'delete'
+        ? `/api/v1/releases/${releaseId}`
+        : `/api/v1/releases/${releaseId}/${action}`;
+
+    const r = await fetch(url, { method });
+    if (!r.ok) {
+        status.textContent = `Failed: ${r.status}`;
+        return;
+    }
+
+    const row = document.getElementById('row-' + releaseId);
+    if (!row) return;
+
+    if (action === 'delete') {
+        row.remove();
+        status.textContent = 'Release deleted.';
+        return;
+    }
+
+    const data = await r.json();
+    const isHidden = data.is_hidden;
+    row.className = isHidden ? 'staff-row-hidden' : '';
+
+    const btn = row.querySelector(`[data-action="${action}"]`);
+    if (btn) {
+        btn.dataset.action = isHidden ? 'unhide' : 'hide';
+        btn.textContent = isHidden ? 'Unhide' : 'Hide';
+    }
+
+    const flagCell = row.cells[5];
+    const existingHiddenBadge = flagCell.querySelector('.status-hidden');
+    if (isHidden && !existingHiddenBadge) {
+        const badge = document.createElement('span');
+        badge.className = 'status-badge status-hidden';
+        badge.textContent = 'hidden';
+        flagCell.appendChild(badge);
+    } else if (!isHidden && existingHiddenBadge) {
+        existingHiddenBadge.remove();
+    }
+
+    status.textContent = isHidden ? 'Release hidden.' : 'Release unhidden.';
+}
+
+document.getElementById('releases-tbody')?.addEventListener('click', async e => {
+    const btn = e.target.closest('.staff-action-btn');
+    if (!btn) return;
+
+    const action = btn.dataset.action;
+    const releaseId = btn.dataset.releaseId;
+
+    if (action === 'delete' && !confirm('Permanently delete this release and all its files?')) return;
+
+    btn.disabled = true;
+    try {
+        await releaseAction(releaseId, action);
+    } finally {
+        btn.disabled = false;
+    }
+});
+</script>
+}

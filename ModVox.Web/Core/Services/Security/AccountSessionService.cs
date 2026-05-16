@@ -85,13 +85,6 @@ public sealed class AccountSessionService : IAccountSessionService
 
     public async Task LogoutAllAsync(UserAccount user, CancellationToken cancellationToken)
     {
-        var updated = user with
-        {
-            SessionVersion = user.SessionVersion + 1,
-            UpdatedAt = DateTimeOffset.UtcNow
-        };
-
-        await _userRepository.UpdateAsync(updated, cancellationToken);
         await _sessionRepository.DeleteByUserIdAsync(user.Id, cancellationToken);
     }
 }

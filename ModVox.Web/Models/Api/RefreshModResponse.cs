@@ -1,6 +1,8 @@
 namespace ModVox.Web.ApiModels;
 
 public sealed record RefreshModResponse(
-    Guid JobId,
+    Guid ModId,
     string Status,
-    DateTimeOffset EnqueuedAt);
+    DateTimeOffset RefreshedAt,
+    int ReleasesUpserted,
+    string Message);

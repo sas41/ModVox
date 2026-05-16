@@ -34,7 +34,7 @@
             <ul class="md-list md-list-unordered">
                 @foreach (var credit in Model.Credits)
                 {
-                    <li class="md-list-item"><strong>@credit.Key</strong> — @credit.Text</li>
+                    <li class="md-list-item"><strong>@credit.UserId</strong> — @credit.Text</li>
                 }
             </ul>
         </div>
@@ -48,7 +48,7 @@
                 Your mod is unverified and not publicly visible. Add the token below to the
                 <code class="md-inline-code">verify</code> field in your
                 <code class="md-inline-code">@Model.ManifestFileName</code> and commit it,
-                then click <strong>Refresh Manifest</strong>.
+                then click <strong>Refresh Mod</strong>.
             </p>
             <div class="staff-inline">
                 <code id="verify-token-display" class="md-inline-code key-display">@Model.VerifyToken</code>
@@ -59,20 +59,13 @@
 
     <div class="staff-grid-2">
         <div class="staff-panel">
-            <h2 class="md-heading md-h3">Manifest</h2>
+            <h2 class="md-heading md-h3">Refresh Mod</h2>
             <p class="md-paragraph staff-muted">
-                Re-reads <code class="md-inline-code">@Model.ManifestFileName</code> from the repository
-                and updates all mod metadata. If the <code class="md-inline-code">verify</code> token is
-                present and correct, the mod will be verified.
+                Re-reads <code class="md-inline-code">@Model.ManifestFileName</code>, verifies the
+                <code class="md-inline-code">verify</code> token, updates metadata/tags/credits,
+                persists README and changelog, and syncs releases.
             </p>
-            <div>
-                <label class="staff-label" for="refresh-ref">
-                    Ref / branch
-                    <span class="staff-muted">(optional — defaults to stored default_ref)</span>
-                </label>
-                <input class="staff-input" id="refresh-ref" placeholder="main" />
-            </div>
-            <button id="refresh-manifest" class="staff-button" type="button">Refresh Manifest</button>
+            <button id="refresh-mod" class="staff-button" type="button">Refresh Mod</button>
         </div>
 
         <div class="staff-panel">
@@ -98,23 +91,6 @@
             </div>
         </div>
 
-        @if (!Model.IsUnverified)
-        {
-            <div class="staff-panel">
-                <h2 class="md-heading md-h3">Content Refresh</h2>
-                <p class="md-paragraph staff-muted">
-                    Trigger a manual content refresh to pull the latest README, changelog, and images.
-                    Subject to a per-mod cooldown.
-                </p>
-                <button id="trigger-refresh" class="staff-button" type="button">Trigger Content Refresh</button>
-                <div id="job-status-panel" hidden>
-                    <p class="md-paragraph">Job: <code id="job-id" class="md-inline-code"></code></p>
-                    <p class="md-paragraph">Status: <strong id="job-status-text"></strong></p>
-                    <button id="poll-job" class="staff-button staff-button-secondary" type="button">Check Status</button>
-                </div>
-            </div>
-        }
-
         <div class="staff-panel">
             <h2 class="md-heading md-h3">Stats</h2>
             <p class="md-paragraph">Downloads: <strong>@Model.DownloadCount</strong></p>
@@ -127,7 +103,10 @@
 
     <p id="edit-mod-status" class="staff-status" aria-live="polite"></p>
 
-    <p class="md-paragraph"><a class="md-link" href="/maintainer">Back to My Mods</a></p>
+    <div class="staff-inline">
+        <a class="staff-button staff-button-secondary" href="/maintainer/edit/@Model.ModId/releases">Manage Releases</a>
+        <a class="md-link" href="/maintainer">Back to My Mods</a>
+    </div>
 </section>
 
 @section Scripts {
@@ -153,23 +132,25 @@ document.getElementById('copy-verify-token')?.addEventListener('click', () => {
     });
 });
 
-// Refresh manifest
-document.getElementById('refresh-manifest').addEventListener('click', async () => {
-    status.textContent = 'Refreshing manifest...';
-    const ref = document.getElementById('refresh-ref').value.trim() || null;
-    const r = await fetch('/api/v1/mods/' + modId + '/manifest/refresh', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ref })
-    });
+// Unified refresh
+document.getElementById('refresh-mod').addEventListener('click', async () => {
+    status.textContent = 'Refreshing mod...';
     try {
+        const r = await fetch('/api/v1/mods/' + modId + '/refresh', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
         const data = await r.json();
-        status.textContent = data.message ?? (r.ok ? 'Manifest refreshed.' : 'Failed to refresh manifest.');
-        if (r.ok && data.verified) {
-            setTimeout(() => window.location.reload(), 1500);
+        if (!r.ok) {
+            const step = data.step ? (' [' + data.step + ']') : '';
+            status.textContent = (data.message ?? 'Refresh failed.') + step;
+            return;
         }
+
+        status.textContent = data.message ?? 'Refresh completed.';
+        if (r.ok) setTimeout(() => window.location.reload(), 1200);
     } catch {
-        status.textContent = r.ok ? 'Manifest refreshed.' : 'Failed to refresh manifest.';
+        status.textContent = 'Refresh failed. Check server logs for details.';
     }
 });
 
@@ -207,42 +188,5 @@ document.getElementById('revoke-key')?.addEventListener('click', async () => {
     }
 });
 
-// Content refresh (only present when verified)
-const triggerRefreshBtn = document.getElementById('trigger-refresh');
-const jobStatusPanel = document.getElementById('job-status-panel');
-const jobIdEl = document.getElementById('job-id');
-const jobStatusText = document.getElementById('job-status-text');
-let currentJobId = null;
-
-triggerRefreshBtn?.addEventListener('click', async () => {
-    try {
-        status.textContent = 'Requesting content refresh...';
-        const r = await post('/api/v1/refresh/mod');
-        const data = await r.json();
-        currentJobId = data.job_id;
-        jobIdEl.textContent = currentJobId;
-        jobStatusText.textContent = data.status;
-        jobStatusPanel.hidden = false;
-        status.textContent = '';
-    } catch (err) {
-        status.textContent = err.message === '429'
-            ? 'Refresh on cooldown — try again later.'
-            : 'Failed to trigger content refresh.';
-    }
-});
-
-document.getElementById('poll-job')?.addEventListener('click', async () => {
-    if (!currentJobId) return;
-    try {
-        const r = await fetch('/api/v1/refresh/jobs/' + currentJobId);
-        if (!r.ok) { status.textContent = 'Job not found.'; return; }
-        const data = await r.json();
-        jobStatusText.textContent = data.status;
-        if (data.error) status.textContent = 'Error: ' + data.error;
-        else if (data.status === 'succeeded') status.textContent = 'Content refresh completed.';
-    } catch {
-        status.textContent = 'Failed to check job status.';
-    }
-});
 </script>
 }

@@ -120,14 +120,32 @@ public sealed class ManifestService : IManifestService
         var description = obj["description"]?.GetValue<string>() ?? string.Empty;
         var verify = obj["verify"]?.GetValue<string>();
 
-        var credits = new Dictionary<string, string>();
+        var credits = new Dictionary<Guid, string>();
         if (obj["credits"] is JsonObject creditsObj)
         {
             foreach (var kvp in creditsObj)
             {
                 var creditText = kvp.Value?.GetValue<string>();
-                if (!string.IsNullOrWhiteSpace(kvp.Key) && !string.IsNullOrWhiteSpace(creditText))
-                    credits[kvp.Key] = creditText;
+                if (!string.IsNullOrWhiteSpace(kvp.Key)
+                    && !string.IsNullOrWhiteSpace(creditText)
+                    && Guid.TryParse(kvp.Key, out var userId))
+                {
+                    credits[userId] = creditText;
+                }
+            }
+        }
+
+        var externalCredits = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (obj["external_credits"] is JsonObject externalCreditsObj)
+        {
+            foreach (var kvp in externalCreditsObj)
+            {
+                var creditText = kvp.Value?.GetValue<string>();
+                var contributorName = kvp.Key?.Trim();
+                if (!string.IsNullOrWhiteSpace(contributorName) && !string.IsNullOrWhiteSpace(creditText))
+                {
+                    externalCredits[contributorName] = creditText;
+                }
             }
         }
 
@@ -140,7 +158,8 @@ public sealed class ManifestService : IManifestService
             Changelog: changelog,
             Images: images,
             Tags: tagLabels,
-            Credits: credits);
+            Credits: credits,
+            ExternalCredits: externalCredits);
 
         return new ManifestReadResult.Valid(manifest, resolvedTagIds);
     }

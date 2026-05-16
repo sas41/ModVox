@@ -1,5 +1,6 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Options;
 using ModVox.Web.Config;
 
@@ -55,7 +56,7 @@ public sealed class GitHubRepositoryProvider : IRepositoryProvider
             x.Path,
             x.Name,
             string.Equals(x.Type, "dir", StringComparison.OrdinalIgnoreCase),
-            new Uri(x.HtmlUrl))).ToArray();
+            BuildContentPublicUrl(coordinates, x.Path, x.HtmlUrl))).ToArray();
     }
 
     public async Task<IReadOnlyList<RepositoryRelease>> ListReleasesAsync(RepositoryCoordinates coordinates, CancellationToken cancellationToken)
@@ -74,14 +75,18 @@ public sealed class GitHubRepositoryProvider : IRepositoryProvider
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
         var items = await JsonSerializer.DeserializeAsync<List<GitHubRelease>>(stream, JsonOptions, cancellationToken) ?? new();
 
-        return items.Select(release => new RepositoryRelease(
-            release.TagName,
-            release.PublishedAt,
-            release.Assets.Select(asset => new ReleaseArtifact(
-                asset.Name,
-                asset.ContentType,
-                asset.Size,
-                new Uri(asset.BrowserDownloadUrl))).ToArray())).ToArray();
+        return items
+            .Where(r => !r.Draft)
+            .Select(release => new RepositoryRelease(
+                release.TagName,
+                release.Name,
+                release.Prerelease,
+                release.PublishedAt,
+                release.Assets.Select(asset => new ReleaseArtifact(
+                    asset.Name,
+                    asset.ContentType,
+                    asset.Size,
+                    new Uri(asset.BrowserDownloadUrl))).ToArray())).ToArray();
     }
 
     public Uri ResolvePublicFileUrl(RepositoryCoordinates coordinates, string path)
@@ -100,26 +105,64 @@ public sealed class GitHubRepositoryProvider : IRepositoryProvider
         return client;
     }
 
+    private static Uri BuildContentPublicUrl(RepositoryCoordinates coordinates, string path, string? htmlUrl)
+    {
+        if (!string.IsNullOrWhiteSpace(htmlUrl) && Uri.TryCreate(htmlUrl, UriKind.Absolute, out var parsed))
+        {
+            return parsed;
+        }
+
+        return new Uri($"https://github.com/{coordinates.Owner}/{coordinates.Repository}/blob/{coordinates.RefName}/{path.TrimStart('/')}");
+    }
+
     private sealed class GitHubContentItem
     {
+        [JsonPropertyName("name")]
         public string Name { get; init; } = string.Empty;
+
+        [JsonPropertyName("path")]
         public string Path { get; init; } = string.Empty;
+
+        [JsonPropertyName("type")]
         public string Type { get; init; } = string.Empty;
+
+        [JsonPropertyName("html_url")]
         public string HtmlUrl { get; init; } = string.Empty;
     }
 
     private sealed class GitHubRelease
     {
+        [JsonPropertyName("tag_name")]
         public string TagName { get; init; } = string.Empty;
+
+        [JsonPropertyName("name")]
+        public string Name { get; init; } = string.Empty;
+
+        [JsonPropertyName("prerelease")]
+        public bool Prerelease { get; init; }
+
+        [JsonPropertyName("draft")]
+        public bool Draft { get; init; }
+
+        [JsonPropertyName("published_at")]
         public DateTimeOffset PublishedAt { get; init; }
+
+        [JsonPropertyName("assets")]
         public List<GitHubReleaseAsset> Assets { get; init; } = new();
     }
 
     private sealed class GitHubReleaseAsset
     {
+        [JsonPropertyName("name")]
         public string Name { get; init; } = string.Empty;
+
+        [JsonPropertyName("content_type")]
         public string ContentType { get; init; } = "application/octet-stream";
+
+        [JsonPropertyName("size")]
         public long Size { get; init; }
+
+        [JsonPropertyName("browser_download_url")]
         public string BrowserDownloadUrl { get; init; } = string.Empty;
     }
 }

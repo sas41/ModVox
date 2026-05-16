@@ -71,6 +71,7 @@ public sealed class CacheCoordinator : ICacheCoordinator
         return resourceType switch
         {
             CacheResourceType.Readme => TimeSpan.FromMinutes(_options.ReadmeTtlMinutes),
+            CacheResourceType.Changelog => TimeSpan.FromMinutes(_options.ChangelogTtlMinutes),
             CacheResourceType.Images => TimeSpan.FromMinutes(_options.ImagesTtlMinutes),
             CacheResourceType.Releases => TimeSpan.FromMinutes(_options.ReleasesTtlMinutes),
             CacheResourceType.Listing => TimeSpan.FromMinutes(_options.ListingTtlMinutes),
