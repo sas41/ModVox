@@ -1,12 +1,24 @@
 services:
   web:
-    image: ${MODVOX_WEB_IMAGE:-ghcr.io/sas41/modvox-web:latest}
+    build:
+      context: .
+      dockerfile: ModVox.Web/Dockerfile
+      target: dev
+    working_dir: /src/ModVox.Web
+    volumes:
+      - ./:/src
+      - modvox-nuget:/root/.nuget/packages
+      - modvox-web-obj:/src/ModVox.Web/obj
+      - modvox-web-bin:/src/ModVox.Web/bin
     env_file:
       - path: modvox.env
         required: true
     environment:
       ASPNETCORE_URLS: http://0.0.0.0:8080
-      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_ENVIRONMENT: Development
+      DOTNET_USE_POLLING_FILE_WATCHER: "1"
+      DOTNET_WATCH_RESTART_ON_RUDE_EDIT: "1"
+      DOTNET_CLI_HOME: /tmp
       Refresh__MinIntervalMinutes: 10
     ports:
       - "8080:8080"
@@ -45,3 +57,6 @@ services:
 
 volumes:
   postgres-data:
+  modvox-nuget:
+  modvox-web-obj:
+  modvox-web-bin:

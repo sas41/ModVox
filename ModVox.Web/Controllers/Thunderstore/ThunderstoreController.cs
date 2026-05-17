@@ -28,11 +28,16 @@ public sealed class ThunderstoreController : IEndpoint
         CancellationToken cancellationToken)
     {
         var mods = await ListVisibleModsAsync(gameRepository, modRepository, cancellationToken);
+        var releasesByMod = await releaseRepository.ListByModIdsAsync(mods.Select(m => m.Id), cancellationToken);
         var rows = new List<ThunderstorePackageListItemDto>();
 
         foreach (var mod in mods)
         {
-            var releases = await releaseRepository.ListByModIdAsync(mod.Id, cancellationToken);
+            if (!releasesByMod.TryGetValue(mod.Id, out var releases))
+            {
+                continue;
+            }
+
             var visibleReleases = releases.Where(x => !x.IsHidden).OrderByDescending(x => x.PublishedAt).ToList();
             if (visibleReleases.Count == 0)
                 continue;
@@ -56,11 +61,16 @@ public sealed class ThunderstoreController : IEndpoint
             return Results.Ok(Array.Empty<object>());
 
         var mods = await modRepository.ListVisibleByGameIdAsync(game.Id, cancellationToken);
+        var releasesByMod = await releaseRepository.ListByModIdsAsync(mods.Select(m => m.Id), cancellationToken);
         var rows = new List<ThunderstorePackageListItemDto>();
 
         foreach (var mod in mods)
         {
-            var releases = await releaseRepository.ListByModIdAsync(mod.Id, cancellationToken);
+            if (!releasesByMod.TryGetValue(mod.Id, out var releases))
+            {
+                continue;
+            }
+
             var visibleReleases = releases.Where(x => !x.IsHidden).OrderByDescending(x => x.PublishedAt).ToList();
             if (visibleReleases.Count == 0)
                 continue;
@@ -82,9 +92,14 @@ public sealed class ThunderstoreController : IEndpoint
         httpContext.Response.ContentType = "application/x-ndjson";
 
         var mods = await ListVisibleModsAsync(gameRepository, modRepository, cancellationToken);
+        var releasesByMod = await releaseRepository.ListByModIdsAsync(mods.Select(m => m.Id), cancellationToken);
         foreach (var mod in mods)
         {
-            var releases = await releaseRepository.ListByModIdAsync(mod.Id, cancellationToken);
+            if (!releasesByMod.TryGetValue(mod.Id, out var releases))
+            {
+                continue;
+            }
+
             foreach (var release in releases.Where(x => !x.IsHidden))
             {
                 var firstArtifact = release.Artifacts.FirstOrDefault();
@@ -211,15 +226,7 @@ public sealed class ThunderstoreController : IEndpoint
         IModRepository modRepository,
         CancellationToken cancellationToken)
     {
-        var games = await gameRepository.ListAsync(cancellationToken);
-        var mods = new List<ModRecord>();
-        foreach (var game in games)
-        {
-            var byGame = await modRepository.ListVisibleByGameIdAsync(game.Id, cancellationToken);
-            mods.AddRange(byGame);
-        }
-
-        return mods.GroupBy(m => m.Id).Select(x => x.First()).ToArray();
+        return await modRepository.ListVisibleAsync(cancellationToken);
     }
 
     private static async Task<ModRecord?> FindVisibleModAsync(

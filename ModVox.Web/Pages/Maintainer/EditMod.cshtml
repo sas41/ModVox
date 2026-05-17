@@ -96,7 +96,7 @@
             <p class="md-paragraph">Downloads: <strong>@Model.DownloadCount</strong></p>
             @if (!Model.IsUnverified)
             {
-                <p class="md-paragraph"><a class="md-link" href="/@Model.ModId">View public page</a></p>
+                <p class="md-paragraph"><a class="md-link" href="/@Model.GameId/@Model.ModId">View public page</a></p>
             }
         </div>
     </div>
@@ -113,11 +113,17 @@
 <script>
 const modId = '@Model.ModId';
 const status = document.getElementById('edit-mod-status');
+const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
 
 async function post(path, payload) {
+    const headers = { 'Content-Type': 'application/json' };
+    if (csrfToken) {
+        headers['X-CSRF-TOKEN'] = csrfToken;
+    }
+
     const r = await fetch(path, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(payload ?? {})
     });
     if (!r.ok) throw new Error(r.status);
@@ -136,9 +142,14 @@ document.getElementById('copy-verify-token')?.addEventListener('click', () => {
 document.getElementById('refresh-mod').addEventListener('click', async () => {
     status.textContent = 'Refreshing mod...';
     try {
+        const headers = { 'Content-Type': 'application/json' };
+        if (csrfToken) {
+            headers['X-CSRF-TOKEN'] = csrfToken;
+        }
+
         const r = await fetch('/api/v1/mods/' + modId + '/refresh', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
+            headers
         });
         const data = await r.json();
         if (!r.ok) {
@@ -147,8 +158,7 @@ document.getElementById('refresh-mod').addEventListener('click', async () => {
             return;
         }
 
-        status.textContent = data.message ?? 'Refresh completed.';
-        if (r.ok) setTimeout(() => window.location.reload(), 1200);
+        status.textContent = (data.message ?? 'Refresh accepted.') + (data.jobId ? (' Job: ' + data.jobId) : '');
     } catch {
         status.textContent = 'Refresh failed. Check server logs for details.';
     }

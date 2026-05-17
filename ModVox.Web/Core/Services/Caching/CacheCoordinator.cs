@@ -25,8 +25,23 @@ public sealed class CacheCoordinator : ICacheCoordinator
         string path,
         CancellationToken cancellationToken)
     {
-        var key = _cacheKeyFactory.Build(resourceType, provider, owner, repository, refName, path);
-        return _cacheStore.GetAsync<T>(key, cancellationToken);
+        var namespaceKey = _cacheKeyFactory.BuildNamespace(provider, owner, repository);
+        return GetWithNamespaceVersionAsync<T>(namespaceKey, resourceType, provider, owner, repository, refName, path, cancellationToken);
+    }
+
+    private async Task<CacheEnvelope<T>?> GetWithNamespaceVersionAsync<T>(
+        string namespaceKey,
+        CacheResourceType resourceType,
+        string provider,
+        string owner,
+        string repository,
+        string refName,
+        string path,
+        CancellationToken cancellationToken)
+    {
+        var version = await _cacheStore.GetNamespaceVersionAsync(namespaceKey, cancellationToken);
+        var key = _cacheKeyFactory.Build(resourceType, provider, owner, repository, refName, $"v{version}:{path}");
+        return await _cacheStore.GetAsync<T>(key, cancellationToken);
     }
 
     public Task SetAsync<T>(
@@ -40,25 +55,33 @@ public sealed class CacheCoordinator : ICacheCoordinator
         bool isNegative,
         CancellationToken cancellationToken)
     {
-        var key = _cacheKeyFactory.Build(resourceType, provider, owner, repository, refName, path);
+        var namespaceKey = _cacheKeyFactory.BuildNamespace(provider, owner, repository);
+        return SetWithNamespaceVersionAsync(namespaceKey, resourceType, provider, owner, repository, refName, path, value, isNegative, cancellationToken);
+    }
+
+    private async Task SetWithNamespaceVersionAsync<T>(
+        string namespaceKey,
+        CacheResourceType resourceType,
+        string provider,
+        string owner,
+        string repository,
+        string refName,
+        string path,
+        T value,
+        bool isNegative,
+        CancellationToken cancellationToken)
+    {
+        var version = await _cacheStore.GetNamespaceVersionAsync(namespaceKey, cancellationToken);
+        var key = _cacheKeyFactory.Build(resourceType, provider, owner, repository, refName, $"v{version}:{path}");
         var ttl = ResolveTtl(resourceType, isNegative);
         var stale = TimeSpan.FromMinutes(_options.StaleWindowMinutes);
-        return _cacheStore.SetAsync(key, value, ttl, stale, isNegative, cancellationToken);
+        await _cacheStore.SetAsync(key, value, ttl, stale, isNegative, cancellationToken);
     }
 
     public Task InvalidateRepositoryAsync(string provider, string owner, string repository, CancellationToken cancellationToken)
     {
-        var prefix = string.Join(':', new[]
-        {
-            "modvox",
-            "cache",
-            string.Empty,
-            provider.Trim().ToLowerInvariant(),
-            owner.Trim().ToLowerInvariant(),
-            repository.Trim().ToLowerInvariant()
-        });
-
-        return _cacheStore.RemoveByPrefixAsync(prefix, cancellationToken);
+        var namespaceKey = _cacheKeyFactory.BuildNamespace(provider, owner, repository);
+        return _cacheStore.IncrementNamespaceVersionAsync(namespaceKey, cancellationToken);
     }
 
     private TimeSpan ResolveTtl(CacheResourceType resourceType, bool isNegative)

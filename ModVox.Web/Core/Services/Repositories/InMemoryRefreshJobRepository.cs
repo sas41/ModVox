@@ -19,6 +19,21 @@ public sealed class InMemoryRefreshJobRepository : IRefreshJobRepository
         return Task.FromResult(job);
     }
 
+    public Task<RefreshJobRecord?> FindByModAndKeyAsync(Guid modId, string? idempotencyKey, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(idempotencyKey))
+        {
+            return Task.FromResult<RefreshJobRecord?>(null);
+        }
+
+        var job = _jobs.Values
+            .Where(x => x.ModId == modId && string.Equals(x.IdempotencyKey, idempotencyKey, StringComparison.Ordinal))
+            .OrderByDescending(x => x.EnqueuedAt)
+            .FirstOrDefault();
+
+        return Task.FromResult(job);
+    }
+
     public Task<RefreshJobRecord?> FindActiveByModAndKeyAsync(Guid modId, string? idempotencyKey, CancellationToken cancellationToken)
     {
         var job = _jobs.Values.FirstOrDefault(x =>

@@ -52,7 +52,7 @@ public sealed class RefreshWorker : BackgroundService
                 if (!string.Equals(result.Status, "updated", StringComparison.OrdinalIgnoreCase))
                 {
                     job.Status = RefreshJobStatus.Failed;
-                    job.Error = result.Message ?? "Refresh failed.";
+                    job.Error = "Refresh failed. Check server logs for details.";
                     job.Result = result.Status;
                     job.CompletedAt = DateTimeOffset.UtcNow;
                     await jobRepository.UpdateAsync(job, stoppingToken);
@@ -68,7 +68,7 @@ public sealed class RefreshWorker : BackgroundService
             {
                 _logger.LogError(ex, "Refresh job {JobId} failed", job.Id);
                 job.Status = RefreshJobStatus.Failed;
-                job.Error = ex.Message;
+                job.Error = "Refresh job failed due to an internal error.";
                 job.CompletedAt = DateTimeOffset.UtcNow;
 
                 await using var errorScope = _scopeFactory.CreateAsyncScope();

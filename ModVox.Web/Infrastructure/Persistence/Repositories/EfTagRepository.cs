@@ -18,6 +18,9 @@ public sealed class EfTagRepository : ITagRepository
     public async Task<TagRecord?> GetByIdAsync(Guid tagId, CancellationToken cancellationToken)
         => await _db.Tags.AsNoTracking().FirstOrDefaultAsync(t => t.Id == tagId, cancellationToken);
 
+    public async Task<TagRecord?> GetByLabelAsync(string label, CancellationToken cancellationToken)
+        => await _db.Tags.AsNoTracking().FirstOrDefaultAsync(t => t.Label == label, cancellationToken);
+
     public async Task<IReadOnlyList<TagRecord>> ListAsync(CancellationToken cancellationToken)
         => await _db.Tags.AsNoTracking().OrderBy(t => t.Label).ToListAsync(cancellationToken);
 

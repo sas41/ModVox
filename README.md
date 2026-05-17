@@ -17,19 +17,41 @@ It provides:
 
 ## Quick Start
 
-1. Start the stack:
+1. Configure environment:
 
 ```bash
-docker compose up --build
+cp modvox.env.example modvox.env
+# Edit modvox.env and set strong non-default credentials.
 ```
 
-2. Open the app:
+2. Start the development stack:
+
+```bash
+./dev.sh up
+```
+
+`docker-compose.dev.yml` and `docker-compose.yml` both require `modvox.env` (`env_file.required: true`).
+
+If you already have an initialized Postgres volume, keep `POSTGRES_PASSWORD` in `modvox.env`
+aligned with that existing database password (default local dev value is `modvox`).
+Use `./dev.sh clean` to reset local volumes when changing credentials.
+
+
+3. Open the app:
 
 - Website: `http://localhost:8080`
 - Website: `http://localhost:8080/login`
 - Health check: `http://localhost:8080/healthz`
 
-3. Log in with seeded account: admin/admin (created at startup, please change username and password) and configure games/tags/users from staff pages.
+4. Log in with seeded account: admin/admin (development bootstrap only). Rotate credentials immediately and do not reuse bootstrap credentials outside local development.
+
+5. Optional production compose run:
+
+```bash
+docker compose -f docker-compose.yml up
+```
+
+Production compose pulls `MODVOX_WEB_IMAGE` from `modvox.env`.
 
 ## Core Website Flow
 

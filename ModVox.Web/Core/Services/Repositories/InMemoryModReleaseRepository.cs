@@ -16,6 +16,17 @@ public sealed class InMemoryModReleaseRepository : IModReleaseRepository
         return Task.FromResult<IReadOnlyList<ModReleaseRecord>>(releases);
     }
 
+    public Task<IReadOnlyDictionary<Guid, IReadOnlyList<ModReleaseRecord>>> ListByModIdsAsync(IEnumerable<Guid> modIds, CancellationToken cancellationToken)
+    {
+        var idSet = modIds.Distinct().ToHashSet();
+        var result = _releases.Values
+            .Where(r => idSet.Contains(r.ModId))
+            .GroupBy(r => r.ModId)
+            .ToDictionary(g => g.Key, g => (IReadOnlyList<ModReleaseRecord>)g.OrderByDescending(r => r.PublishedAt).ToList());
+
+        return Task.FromResult<IReadOnlyDictionary<Guid, IReadOnlyList<ModReleaseRecord>>>(result);
+    }
+
     public Task<ModReleaseRecord?> GetByIdAsync(Guid releaseId, CancellationToken cancellationToken)
     {
         _releases.TryGetValue(releaseId, out var release);

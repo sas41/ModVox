@@ -66,25 +66,28 @@ public sealed class ValkeyCacheStore : ICacheStore
         await db.StringSetAsync(key, json, ttl.Add(staleWindow));
     }
 
-    public async Task RemoveByPrefixAsync(string prefix, CancellationToken cancellationToken)
+    public async Task<long> IncrementNamespaceVersionAsync(string namespaceKey, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var endpoints = _connectionMultiplexer.GetEndPoints();
-        foreach (var endpoint in endpoints)
-        {
-            var server = _connectionMultiplexer.GetServer(endpoint);
-            if (!server.IsConnected)
-            {
-                continue;
-            }
+        var db = _connectionMultiplexer.GetDatabase();
+        var version = await db.StringIncrementAsync(NamespaceVersionKey(namespaceKey));
+        return (long)version;
+    }
 
-            await foreach (var key in server.KeysAsync(pattern: prefix + "*"))
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                await _connectionMultiplexer.GetDatabase().KeyDeleteAsync(key);
-            }
+    public async Task<long> GetNamespaceVersionAsync(string namespaceKey, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var db = _connectionMultiplexer.GetDatabase();
+        var raw = await db.StringGetAsync(NamespaceVersionKey(namespaceKey));
+        if (!raw.HasValue || !long.TryParse(raw.ToString(), out var version) || version < 1)
+        {
+            await db.StringSetAsync(NamespaceVersionKey(namespaceKey), "1", when: When.NotExists);
+            return 1;
         }
+
+        return version;
     }
 
     public async Task<bool> TryAcquireSingleFlightAsync(string key, TimeSpan lockTtl, CancellationToken cancellationToken)
@@ -104,4 +107,5 @@ public sealed class ValkeyCacheStore : ICacheStore
     }
 
     private static string LockKey(string cacheKey) => cacheKey + ":lock";
+    private static string NamespaceVersionKey(string namespaceKey) => namespaceKey + ":ns-version";
 }

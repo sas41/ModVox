@@ -121,9 +121,12 @@ public sealed class ContentSyncService : IContentSyncService
 
             await _modRepository.UpdateAsync(updatedMod, cancellationToken);
 
+            var existingByTag = (await _modReleaseRepository.ListByModIdAsync(mod.Id, cancellationToken))
+                .ToDictionary(r => r.TagName, r => r, StringComparer.Ordinal);
+
             foreach (var release in releases)
             {
-                var existing = await _modReleaseRepository.GetByModAndTagAsync(mod.Id, release.TagName, cancellationToken);
+                existingByTag.TryGetValue(release.TagName, out var existing);
                 var releaseId = existing?.Id ?? Guid.NewGuid();
                 var mapped = new ModReleaseRecord(
                     releaseId,

@@ -35,6 +35,15 @@ public sealed class InMemoryModRepository : IModRepository
         return Task.FromResult<IReadOnlyList<ModRecord>>(mods);
     }
 
+    public Task<IReadOnlyList<ModRecord>> ListVisibleAsync(CancellationToken cancellationToken)
+    {
+        var mods = _mods.Values
+            .Where(x => IsPubliclyVisible(x.ModerationStatus))
+            .ToList();
+
+        return Task.FromResult<IReadOnlyList<ModRecord>>(mods);
+    }
+
     public Task<IReadOnlyList<ModRecord>> ListVisibleByGameIdAsync(Guid gameId, CancellationToken cancellationToken)
     {
         var mods = _mods.Values
@@ -96,6 +105,23 @@ public sealed class InMemoryModRepository : IModRepository
     {
         _mods[mod.Id] = mod;
         return Task.CompletedTask;
+    }
+
+    public Task<long?> IncrementDownloadCountAsync(Guid gameId, Guid modId, CancellationToken cancellationToken)
+    {
+        if (!_mods.TryGetValue(modId, out var mod) || mod.GameId != gameId)
+        {
+            return Task.FromResult<long?>(null);
+        }
+
+        var updated = mod with
+        {
+            DownloadCount = mod.DownloadCount + 1,
+            UpdatedAt = DateTimeOffset.UtcNow
+        };
+
+        _mods[mod.Id] = updated;
+        return Task.FromResult<long?>(updated.DownloadCount);
     }
 
     public Task DeleteAsync(Guid modId, CancellationToken cancellationToken)

@@ -19,6 +19,12 @@ public sealed class InMemoryTagRepository : ITagRepository
         return Task.FromResult(tag);
     }
 
+    public Task<TagRecord?> GetByLabelAsync(string label, CancellationToken cancellationToken)
+    {
+        var tag = _tags.Values.FirstOrDefault(x => string.Equals(x.Label, label, StringComparison.OrdinalIgnoreCase));
+        return Task.FromResult(tag);
+    }
+
     public Task<IReadOnlyList<TagRecord>> ListAsync(CancellationToken cancellationToken)
     {
         var tags = _tags.Values

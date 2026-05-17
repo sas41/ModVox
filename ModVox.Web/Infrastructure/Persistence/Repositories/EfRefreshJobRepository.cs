@@ -18,6 +18,14 @@ public sealed class EfRefreshJobRepository : IRefreshJobRepository
     public async Task<RefreshJobRecord?> GetByIdAsync(Guid jobId, CancellationToken cancellationToken)
         => await _db.RefreshJobs.FindAsync(new object[] { jobId }, cancellationToken);
 
+    public async Task<RefreshJobRecord?> FindByModAndKeyAsync(Guid modId, string? idempotencyKey, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(idempotencyKey)) return null;
+        return await _db.RefreshJobs.AsNoTracking()
+            .OrderByDescending(j => j.EnqueuedAt)
+            .FirstOrDefaultAsync(j => j.ModId == modId && j.IdempotencyKey == idempotencyKey, cancellationToken);
+    }
+
     public async Task<RefreshJobRecord?> FindActiveByModAndKeyAsync(Guid modId, string? idempotencyKey, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(idempotencyKey)) return null;

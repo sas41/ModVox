@@ -6,6 +6,7 @@ public sealed class InMemoryCacheStore : ICacheStore
 {
     private readonly ConcurrentDictionary<string, object> _cache = new();
     private readonly ConcurrentDictionary<string, DateTimeOffset> _locks = new();
+    private readonly ConcurrentDictionary<string, long> _namespaceVersions = new();
 
     public Task<CacheEnvelope<T>?> GetAsync<T>(string key, CancellationToken cancellationToken)
     {
@@ -39,14 +40,16 @@ public sealed class InMemoryCacheStore : ICacheStore
         return Task.CompletedTask;
     }
 
-    public Task RemoveByPrefixAsync(string prefix, CancellationToken cancellationToken)
+    public Task<long> IncrementNamespaceVersionAsync(string namespaceKey, CancellationToken cancellationToken)
     {
-        foreach (var key in _cache.Keys.Where(k => k.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)))
-        {
-            _cache.TryRemove(key, out _);
-        }
+        var version = _namespaceVersions.AddOrUpdate(namespaceKey, 1L, (_, current) => current + 1);
+        return Task.FromResult(version);
+    }
 
-        return Task.CompletedTask;
+    public Task<long> GetNamespaceVersionAsync(string namespaceKey, CancellationToken cancellationToken)
+    {
+        var version = _namespaceVersions.GetOrAdd(namespaceKey, 1L);
+        return Task.FromResult(version);
     }
 
     public Task<bool> TryAcquireSingleFlightAsync(string key, TimeSpan lockTtl, CancellationToken cancellationToken)

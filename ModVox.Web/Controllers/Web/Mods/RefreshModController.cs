@@ -1,8 +1,8 @@
 using ModVox.Web.ApiModels;
+using ModVox.Web.Domain;
 using ModVox.Web.Refresh;
 using ModVox.Web.Repositories;
 using ModVox.Web.Security;
-using ModVox.Web.Services;
 
 namespace ModVox.Web.Endpoints;
 
@@ -15,10 +15,10 @@ public sealed class RefreshModEndpoint : IEndpoint
 
     private static async Task<IResult> HandleAsync(
         HttpContext httpContext,
-        RefreshRequestPayload _,
+        RefreshRequestPayload request,
         IModRepository modRepository,
-        IContentSyncService contentSyncService,
         IModKeyService modKeyService,
+        IRefreshAcceptanceService refreshAcceptanceService,
         CancellationToken cancellationToken)
     {
         var key = AuthHelpers.TryGetBearerToken(httpContext);
@@ -34,22 +34,28 @@ public sealed class RefreshModEndpoint : IEndpoint
             return Results.Unauthorized();
         }
 
-        var result = await contentSyncService.SyncAsync(mod, cancellationToken);
-        if (!string.Equals(result.Status, "updated", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(mod.ModerationStatus, ModModerationStatus.Unverified, StringComparison.OrdinalIgnoreCase))
         {
-            return Results.UnprocessableEntity(new
-            {
-                message = result.Message ?? "Refresh failed.",
-                step = result.Step,
-                code = result.ErrorCode
-            });
+            return Results.UnprocessableEntity(new { message = "Unverified mods cannot be refreshed yet." });
         }
 
-        return Results.Ok(new RefreshModResponse(
+        var acceptance = await refreshAcceptanceService.AcceptAsync(mod, request.IdempotencyKey, cancellationToken);
+        if (!acceptance.Accepted)
+        {
+            return Results.Json(new
+            {
+                message = "Refresh cooldown active.",
+                retry_after_seconds = acceptance.RetryAfterSeconds ?? 0
+            }, statusCode: StatusCodes.Status429TooManyRequests);
+        }
+
+        var job = acceptance.Job!;
+        return Results.Accepted($"/api/v1/refresh/jobs/{job.Id}", new RefreshModResponse(
             mod.Id,
-            result.Status,
-            DateTimeOffset.UtcNow,
-            result.ReleasesUpserted,
-            "Refresh completed successfully."));
+            job.Id,
+            acceptance.IsDuplicate ? "duplicate" : "queued",
+            job.EnqueuedAt,
+            0,
+            acceptance.IsDuplicate ? "Duplicate idempotency key accepted; returning existing job." : "Refresh accepted and queued."));
     }
 }

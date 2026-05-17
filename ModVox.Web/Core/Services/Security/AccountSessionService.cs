@@ -9,10 +9,12 @@ namespace ModVox.Web.Security;
 public sealed class AccountSessionService : IAccountSessionService
 {
     private readonly IUserRepository _userRepository;
+    private readonly IAccountSessionRepository _accountSessionRepository;
 
-    public AccountSessionService(IUserRepository userRepository)
+    public AccountSessionService(IUserRepository userRepository, IAccountSessionRepository accountSessionRepository)
     {
         _userRepository = userRepository;
+        _accountSessionRepository = accountSessionRepository;
     }
 
     public async Task CreateSessionAsync(HttpContext httpContext, UserAccount user, CancellationToken cancellationToken)
@@ -60,5 +62,6 @@ public sealed class AccountSessionService : IAccountSessionService
         await httpContext.SignOutAsync(IdentityConstants.ApplicationScheme);
     }
 
-    public Task LogoutAllAsync(UserAccount user, CancellationToken cancellationToken) => Task.CompletedTask;
+    public Task LogoutAllAsync(UserAccount user, CancellationToken cancellationToken)
+        => _accountSessionRepository.DeleteByUserIdAsync(user.Id, cancellationToken);
 }

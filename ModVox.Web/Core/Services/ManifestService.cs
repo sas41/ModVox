@@ -15,14 +15,17 @@ public sealed class ManifestService : IManifestService
     private readonly IRepositoryProviderRegistry _providerRegistry;
     private readonly ITagRepository _tagRepository;
     private readonly ManifestOptions _options;
+    private readonly ILogger<ManifestService> _logger;
 
     public ManifestService(
         IRepositoryProviderRegistry providerRegistry,
         ITagRepository tagRepository,
+        ILogger<ManifestService> logger,
         IOptions<ManifestOptions> options)
     {
         _providerRegistry = providerRegistry;
         _tagRepository = tagRepository;
+        _logger = logger;
         _options = options.Value;
     }
 
@@ -51,7 +54,8 @@ public sealed class ManifestService : IManifestService
         }
         catch (Exception ex)
         {
-            return new ManifestReadResult.Invalid($"Failed to fetch manifest: {ex.Message}");
+            _logger.LogError(ex, "Failed to fetch manifest for {Provider}/{Owner}/{Repository}", provider, owner, repository);
+            return new ManifestReadResult.Invalid("Failed to fetch manifest from repository provider.");
         }
 
         if (raw is null)

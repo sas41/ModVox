@@ -11,14 +11,12 @@ public sealed class IncrementModDownloadEndpoint : IEndpoint
 
     private static async Task<IResult> HandleAsync(Guid gameId, Guid modId, IModRepository modRepository, CancellationToken cancellationToken)
     {
-        var mod = await modRepository.GetByGameAndIdAsync(gameId, modId, includeHidden: true, cancellationToken);
-        if (mod is null)
+        var count = await modRepository.IncrementDownloadCountAsync(gameId, modId, cancellationToken);
+        if (!count.HasValue)
         {
             return Results.NotFound();
         }
 
-        var updated = mod with { DownloadCount = mod.DownloadCount + 1, UpdatedAt = DateTimeOffset.UtcNow };
-        await modRepository.UpdateAsync(updated, cancellationToken);
-        return Results.Ok(new { mod_id = updated.Id, download_count = updated.DownloadCount });
+        return Results.Ok(new { mod_id = modId, download_count = count.Value });
     }
 }

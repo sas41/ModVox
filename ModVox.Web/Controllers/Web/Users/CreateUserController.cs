@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using ModVox.Web.ApiModels;
 using ModVox.Web.Domain;
 using ModVox.Web.Repositories;
@@ -57,6 +58,13 @@ public sealed class CreateUserEndpoint : IEndpoint
             return Results.Conflict(new { message = "Username already exists." });
         }
 
+        var email = request.Email.Trim();
+        var existingByEmail = await userRepository.GetByEmailAsync(email, cancellationToken);
+        if (existingByEmail is not null)
+        {
+            return Results.Conflict(new { message = "Email already exists." });
+        }
+
         if (request.Password.Length < 8)
         {
             return Results.BadRequest(new { message = "Password must be at least 8 characters." });
@@ -67,7 +75,7 @@ public sealed class CreateUserEndpoint : IEndpoint
             Guid.NewGuid(),
             username,
             username,
-            request.Email.Trim(),
+            email,
             passwordService.Hash(request.Password),
             normalizedRole,
             MustChangeCredentials: true,
@@ -78,7 +86,17 @@ public sealed class CreateUserEndpoint : IEndpoint
             now,
             now);
 
-        await userRepository.AddAsync(user, cancellationToken);
+        try
+        {
+            await userRepository.AddAsync(user, cancellationToken);
+        }
+        catch (DbUpdateException ex) when (
+            ex.InnerException?.Message.Contains("ix_users_username", StringComparison.OrdinalIgnoreCase) == true ||
+            ex.InnerException?.Message.Contains("ix_users_email", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            return Results.Conflict(new { message = "Username or email already exists." });
+        }
+
         return Results.Created($"/api/v1/admin/users/{user.Id}", new CreateUserResponse(user.Id, user.Username, user.DisplayName, user.Email, user.Role, user.MustChangeCredentials));
     }
 }

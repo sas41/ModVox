@@ -16,6 +16,25 @@ public sealed class EfModReleaseRepository : IModReleaseRepository
             .OrderByDescending(r => r.PublishedAt)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyDictionary<Guid, IReadOnlyList<ModReleaseRecord>>> ListByModIdsAsync(IEnumerable<Guid> modIds, CancellationToken cancellationToken)
+    {
+        var ids = modIds.Distinct().ToArray();
+        if (ids.Length == 0)
+        {
+            return new Dictionary<Guid, IReadOnlyList<ModReleaseRecord>>();
+        }
+
+        var releases = await _db.ModReleases.AsNoTracking()
+            .Include(r => r.Artifacts)
+            .Where(r => ids.Contains(r.ModId))
+            .OrderByDescending(r => r.PublishedAt)
+            .ToListAsync(cancellationToken);
+
+        return releases
+            .GroupBy(r => r.ModId)
+            .ToDictionary(g => g.Key, g => (IReadOnlyList<ModReleaseRecord>)g.ToList());
+    }
+
     public async Task<ModReleaseRecord?> GetByIdAsync(Guid releaseId, CancellationToken cancellationToken)
         => await _db.ModReleases.AsNoTracking()
             .Include(r => r.Artifacts)

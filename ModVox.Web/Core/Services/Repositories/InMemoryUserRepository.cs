@@ -13,9 +13,25 @@ public sealed class InMemoryUserRepository : IUserRepository
         return Task.FromResult(user);
     }
 
+    public Task<IReadOnlyDictionary<Guid, UserAccount>> GetByIdsAsync(IEnumerable<Guid> userIds, CancellationToken cancellationToken)
+    {
+        var result = userIds
+            .Distinct()
+            .Where(id => _users.ContainsKey(id))
+            .ToDictionary(id => id, id => _users[id]);
+
+        return Task.FromResult<IReadOnlyDictionary<Guid, UserAccount>>(result);
+    }
+
     public Task<UserAccount?> GetByUsernameAsync(string username, CancellationToken cancellationToken)
     {
         var user = _users.Values.FirstOrDefault(x => string.Equals(x.Username, username, StringComparison.OrdinalIgnoreCase));
+        return Task.FromResult(user);
+    }
+
+    public Task<UserAccount?> GetByEmailAsync(string email, CancellationToken cancellationToken)
+    {
+        var user = _users.Values.FirstOrDefault(x => string.Equals(x.Email, email, StringComparison.OrdinalIgnoreCase));
         return Task.FromResult(user);
     }
 

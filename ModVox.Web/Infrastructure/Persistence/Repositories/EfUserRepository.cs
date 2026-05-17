@@ -12,8 +12,24 @@ public sealed class EfUserRepository : IUserRepository
     public async Task<UserAccount?> GetByIdAsync(Guid userId, CancellationToken cancellationToken)
         => await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
 
+    public async Task<IReadOnlyDictionary<Guid, UserAccount>> GetByIdsAsync(IEnumerable<Guid> userIds, CancellationToken cancellationToken)
+    {
+        var ids = userIds.Distinct().ToArray();
+        if (ids.Length == 0)
+        {
+            return new Dictionary<Guid, UserAccount>();
+        }
+
+        return await _db.Users.AsNoTracking()
+            .Where(u => ids.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id, cancellationToken);
+    }
+
     public async Task<UserAccount?> GetByUsernameAsync(string username, CancellationToken cancellationToken)
         => await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Username == username, cancellationToken);
+
+    public async Task<UserAccount?> GetByEmailAsync(string email, CancellationToken cancellationToken)
+        => await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
 
     public async Task AddAsync(UserAccount user, CancellationToken cancellationToken)
     {

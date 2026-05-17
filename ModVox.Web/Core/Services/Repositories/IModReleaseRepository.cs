@@ -5,6 +5,7 @@ namespace ModVox.Web.Repositories;
 public interface IModReleaseRepository
 {
     Task<IReadOnlyList<ModReleaseRecord>> ListByModIdAsync(Guid modId, CancellationToken cancellationToken);
+    Task<IReadOnlyDictionary<Guid, IReadOnlyList<ModReleaseRecord>>> ListByModIdsAsync(IEnumerable<Guid> modIds, CancellationToken cancellationToken);
     Task<ModReleaseRecord?> GetByIdAsync(Guid releaseId, CancellationToken cancellationToken);
     Task<ModReleaseRecord?> GetByModAndTagAsync(Guid modId, string tagName, CancellationToken cancellationToken);
     Task<(IReadOnlyList<ModReleaseRecord> Items, int TotalCount)> SearchAsync(

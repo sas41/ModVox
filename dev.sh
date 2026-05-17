@@ -2,23 +2,24 @@
 set -euo pipefail
 
 COMMAND="${1:-up}"
+COMPOSE_FILE="docker-compose.dev.yml"
 
 case "$COMMAND" in
   up)
-    docker compose up --build --force-recreate web postgres valkey
+    docker compose -f "$COMPOSE_FILE" up --build --force-recreate web postgres valkey
     ;;
   down)
-    docker compose down --remove-orphans
+    docker compose -f "$COMPOSE_FILE" down --remove-orphans
     ;;
   clean)
-    docker compose down --remove-orphans --volumes
+    docker compose -f "$COMPOSE_FILE" down --remove-orphans --volumes
     ;;
   restart)
-    docker compose down
-    docker compose up --build --force-recreate web postgres valkey
+    docker compose -f "$COMPOSE_FILE" down
+    docker compose -f "$COMPOSE_FILE" up --build --force-recreate web postgres valkey
     ;;
   logs)
-    docker compose logs -f web postgres valkey
+    docker compose -f "$COMPOSE_FILE" logs -f web postgres valkey
     ;;
   *)
     cat <<'EOF'

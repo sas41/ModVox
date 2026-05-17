@@ -23,6 +23,11 @@ public sealed class EfModRepository : IModRepository
     public async Task<IReadOnlyList<ModRecord>> ListByGameIdAsync(Guid gameId, CancellationToken cancellationToken)
         => await _db.Mods.AsNoTracking().Where(m => m.GameId == gameId).ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<ModRecord>> ListVisibleAsync(CancellationToken cancellationToken)
+        => await _db.Mods.AsNoTracking()
+            .Where(m => m.ModerationStatus == ModModerationStatus.Approved || m.ModerationStatus == ModModerationStatus.Pending)
+            .ToListAsync(cancellationToken);
+
     public async Task<IReadOnlyList<ModRecord>> ListVisibleByGameIdAsync(Guid gameId, CancellationToken cancellationToken)
         => await _db.Mods.AsNoTracking()
             .Where(m => m.GameId == gameId && (
@@ -62,6 +67,20 @@ public sealed class EfModRepository : IModRepository
     {
         _db.Mods.Update(mod);
         await _db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<long?> IncrementDownloadCountAsync(Guid gameId, Guid modId, CancellationToken cancellationToken)
+    {
+        await _db.Database.ExecuteSqlInterpolatedAsync($@"
+UPDATE mods
+SET download_count = download_count + 1,
+    updated_at = now()
+WHERE id = {modId} AND game_id = {gameId};", cancellationToken);
+
+        return await _db.Mods.AsNoTracking()
+            .Where(m => m.Id == modId && m.GameId == gameId)
+            .Select(m => (long?)m.DownloadCount)
+            .FirstOrDefaultAsync(cancellationToken);
     }
 
     public async Task DeleteAsync(Guid modId, CancellationToken cancellationToken)

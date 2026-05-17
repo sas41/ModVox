@@ -74,9 +74,12 @@ public sealed class ModModel : PageModel
         CreatorDisplayName = creator?.DisplayName ?? creator?.Username ?? mod.MaintainerUserId.ToString();
         CreatorProfileUrl = $"/user/{mod.MaintainerUserId}";
 
+        var creditedUserIds = mod.Credits.Keys.ToArray();
+        var creditedUsersById = await _userRepository.GetByIdsAsync(creditedUserIds, cancellationToken);
+
         foreach (var entry in mod.Credits)
         {
-            var user = await _userRepository.GetByIdAsync(entry.Key, cancellationToken);
+            creditedUsersById.TryGetValue(entry.Key, out var user);
             Credits.Add(new CreditRow(
                 Name: user?.DisplayName ?? user?.Username ?? entry.Key.ToString(),
                 Role: entry.Value,

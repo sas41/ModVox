@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using ModVox.Web.ApiModels;
 using ModVox.Web.Domain;
 using ModVox.Web.Repositories;
@@ -35,9 +36,24 @@ public sealed class CreateTagEndpoint : IEndpoint
             return Results.BadRequest(new { message = "Label is required." });
         }
 
+        var normalizedLabel = request.Label.Trim();
+        var existing = await tagRepository.GetByLabelAsync(normalizedLabel, cancellationToken);
+        if (existing is not null)
+        {
+            return Results.Conflict(new { message = "Tag label already exists." });
+        }
+
         var now = DateTimeOffset.UtcNow;
-        var tag = new TagRecord(Guid.NewGuid(), request.Label.Trim(), now, now);
-        await tagRepository.AddAsync(tag, cancellationToken);
+        var tag = new TagRecord(Guid.NewGuid(), normalizedLabel, now, now);
+        try
+        {
+            await tagRepository.AddAsync(tag, cancellationToken);
+        }
+        catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("ix_tags_label", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            return Results.Conflict(new { message = "Tag label already exists." });
+        }
+
         return Results.Created($"/api/v1/admin/tags/{tag.Id}", new TagResponse(tag.Id, tag.Label));
     }
 }

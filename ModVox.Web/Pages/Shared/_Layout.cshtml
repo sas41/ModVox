@@ -1,9 +1,12 @@
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+
 <!doctype html>
 <html lang="en">
 
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="csrf-token" content="@Antiforgery.GetAndStoreTokens(Context).RequestToken" />
     <title>@ViewData["Title"] - ModVox</title>
     <link rel="stylesheet" href="/css/site.css" />
 </head>
@@ -22,6 +25,29 @@
         @RenderBody()
     </main>
     @await Html.PartialAsync("_CookieNotice")
+    <script>
+    (() => {
+        const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        if (!token) return;
+
+        const originalFetch = window.fetch.bind(window);
+        window.fetch = (input, init = {}) => {
+            const request = new Request(input, init);
+            const method = request.method.toUpperCase();
+            const isWrite = method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE';
+            if (!isWrite) {
+                return originalFetch(request);
+            }
+
+            const headers = new Headers(request.headers);
+            if (!headers.has('Authorization')) {
+                headers.set('X-CSRF-TOKEN', token);
+            }
+
+            return originalFetch(new Request(request, { headers }));
+        };
+    })();
+    </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 

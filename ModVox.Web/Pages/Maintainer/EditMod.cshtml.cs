@@ -37,6 +37,7 @@ public sealed class EditModModel : PageModel
     public string Description { get; private set; } = string.Empty;
     public string Owner { get; private set; } = string.Empty;
     public string Repository { get; private set; } = string.Empty;
+    public Guid GameId { get; private set; }
     public string GameName { get; private set; } = string.Empty;
     public string ModerationStatus { get; private set; } = string.Empty;
     public string VerifyToken { get; private set; } = string.Empty;
@@ -67,6 +68,7 @@ public sealed class EditModModel : PageModel
         Description = mod.Description;
         Owner = mod.Owner;
         Repository = mod.Repository;
+        GameId = mod.GameId;
         KeyActive = mod.KeyHash is not null;
         ModerationStatus = mod.ModerationStatus;
         VerifyToken = mod.VerifyToken;

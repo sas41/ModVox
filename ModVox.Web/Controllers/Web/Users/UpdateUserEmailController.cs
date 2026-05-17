@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using ModVox.Web.ApiModels;
 using ModVox.Web.Domain;
 using ModVox.Web.Repositories;
@@ -43,14 +44,29 @@ public sealed class UpdateUserEmailEndpoint : IEndpoint
             return Results.BadRequest(new { message = "Email is required." });
         }
 
+        var normalizedEmail = request.Email.Trim();
+        var existingByEmail = await userRepository.GetByEmailAsync(normalizedEmail, cancellationToken);
+        if (existingByEmail is not null && existingByEmail.Id != user.Id)
+        {
+            return Results.Conflict(new { message = "Email already exists." });
+        }
+
         var updated = user with
         {
-            Email = request.Email.Trim(),
+            Email = normalizedEmail,
             SessionVersion = user.SessionVersion + 1,
             UpdatedAt = DateTimeOffset.UtcNow
         };
 
-        await userRepository.UpdateAsync(updated, cancellationToken);
+        try
+        {
+            await userRepository.UpdateAsync(updated, cancellationToken);
+        }
+        catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("ix_users_email", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            return Results.Conflict(new { message = "Email already exists." });
+        }
+
         await accountSessionService.LogoutAllAsync(updated, cancellationToken);
         return Results.Ok(new UserAccountResponse(updated.Id, updated.Username, updated.DisplayName, updated.Email, updated.Role, updated.MustChangeCredentials));
     }
