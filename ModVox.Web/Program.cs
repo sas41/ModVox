@@ -1,7 +1,10 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Identity;
 using ModVox.Web.Caching;
 using ModVox.Web.Config;
 using ModVox.Web.Endpoints;
+using ModVox.Web.Domain;
 using ModVox.Web.Infrastructure.Persistence;
 using ModVox.Web.Infrastructure.Persistence.Repositories;
 using ModVox.Web.Providers;
@@ -23,6 +26,19 @@ builder.Services.Configure<ManifestOptions>(builder.Configuration.GetSection(Man
 builder.Services.AddMemoryCache();
 builder.Services.AddHttpClient();
 builder.Services.AddRazorPages();
+builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)
+    .AddCookie(IdentityConstants.ApplicationScheme, options =>
+    {
+        options.Cookie.Name = "__Host-modvox_session";
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.Path = "/";
+        options.Cookie.IsEssential = true;
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.SlidingExpiration = true;
+    });
+builder.Services.AddAuthorization();
 
 // Database
 var connectionString = builder.Configuration.GetConnectionString("Postgres")
@@ -43,7 +59,8 @@ builder.Services.AddScoped<ITagRepository, EfTagRepository>();
 builder.Services.AddScoped<IAuditLogRepository, EfAuditLogRepository>();
 // Services — stateless/infrastructure singletons
 builder.Services.AddSingleton<IModKeyService, ModKeyService>();
-builder.Services.AddSingleton<IPasswordService, PasswordService>();
+builder.Services.AddScoped<IPasswordService, PasswordService>();
+builder.Services.AddScoped<IPasswordHasher<UserAccount>, PasswordHasher<UserAccount>>();
 var valkeyConnectionString = builder.Configuration.GetSection("Valkey").GetValue<string>("ConnectionString")
     ?? throw new InvalidOperationException("Valkey:ConnectionString is required.");
 builder.Services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(valkeyConnectionString));
@@ -88,6 +105,8 @@ using (var scope = app.Services.CreateScope())
 
 app.MapGet("/healthz", () => Results.Ok(new { status = "ok" }));
 app.UseStaticFiles();
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapGet("/pages/{**slug}", async (string slug, IStaticPageService staticPageService, CancellationToken cancellationToken) =>
 {
     var html = await staticPageService.RenderPageHtmlAsync(slug, cancellationToken);

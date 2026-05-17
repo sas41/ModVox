@@ -1,3 +1,6 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Identity;
 using ModVox.Web.Domain;
 using ModVox.Web.Repositories;
 
@@ -5,68 +8,47 @@ namespace ModVox.Web.Security;
 
 public sealed class AccountSessionService : IAccountSessionService
 {
-    public const string CookieName = "__Host-modvox_session";
-    private static readonly TimeSpan SessionTtl = TimeSpan.FromHours(8);
-
-    private readonly IAccountSessionRepository _sessionRepository;
     private readonly IUserRepository _userRepository;
 
-    public AccountSessionService(IAccountSessionRepository sessionRepository, IUserRepository userRepository)
+    public AccountSessionService(IUserRepository userRepository)
     {
-        _sessionRepository = sessionRepository;
         _userRepository = userRepository;
     }
 
     public async Task CreateSessionAsync(HttpContext httpContext, UserAccount user, CancellationToken cancellationToken)
     {
-        var now = DateTimeOffset.UtcNow;
-        var sessionId = Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N");
-        var session = new AccountSessionRecord(sessionId, user.Id, user.SessionVersion, now, now.Add(SessionTtl), now);
-        await _sessionRepository.AddAsync(session, cancellationToken);
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new(ClaimTypes.Name, user.Username),
+            new(ClaimTypes.Email, user.Email),
+            new(ClaimTypes.Role, user.Role),
+            new("session_version", user.SessionVersion.ToString())
+        };
 
-        httpContext.Response.Cookies.Append(
-            CookieName,
-            sessionId,
-            new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = true,
-                SameSite = SameSiteMode.Lax,
-                Expires = session.ExpiresAt.UtcDateTime,
-                Path = "/",
-                IsEssential = true
-            });
+        var identity = new ClaimsIdentity(claims, IdentityConstants.ApplicationScheme);
+        var principal = new ClaimsPrincipal(identity);
+        await httpContext.SignInAsync(IdentityConstants.ApplicationScheme, principal);
     }
 
     public async Task<UserAccount?> GetCurrentUserAsync(HttpContext httpContext, CancellationToken cancellationToken)
     {
-        if (!httpContext.Request.Cookies.TryGetValue(CookieName, out var sessionId) || string.IsNullOrWhiteSpace(sessionId))
+        var userIdValue = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userIdValue, out var userId))
         {
             return null;
         }
 
-        var session = await _sessionRepository.GetBySessionIdAsync(sessionId, cancellationToken);
-        if (session is null)
-        {
-            return null;
-        }
-
-        if (session.ExpiresAt <= DateTimeOffset.UtcNow)
-        {
-            await _sessionRepository.DeleteAsync(sessionId, cancellationToken);
-            return null;
-        }
-
-        var user = await _userRepository.GetByIdAsync(session.UserId, cancellationToken);
+        var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
         if (user is null || user.IsDeleted)
         {
-            await _sessionRepository.DeleteAsync(sessionId, cancellationToken);
             return null;
         }
 
-        if (user.SessionVersion != session.SessionVersion)
+        var sessionVersionClaim = httpContext.User.FindFirstValue("session_version");
+        if (!int.TryParse(sessionVersionClaim, out var sessionVersion) || sessionVersion != user.SessionVersion)
         {
-            await _sessionRepository.DeleteAsync(sessionId, cancellationToken);
+            await httpContext.SignOutAsync(IdentityConstants.ApplicationScheme);
             return null;
         }
 
@@ -75,16 +57,8 @@ public sealed class AccountSessionService : IAccountSessionService
 
     public async Task LogoutAsync(HttpContext httpContext, CancellationToken cancellationToken)
     {
-        if (httpContext.Request.Cookies.TryGetValue(CookieName, out var sessionId) && !string.IsNullOrWhiteSpace(sessionId))
-        {
-            await _sessionRepository.DeleteAsync(sessionId, cancellationToken);
-        }
-
-        httpContext.Response.Cookies.Delete(CookieName, new CookieOptions { Path = "/" });
+        await httpContext.SignOutAsync(IdentityConstants.ApplicationScheme);
     }
 
-    public async Task LogoutAllAsync(UserAccount user, CancellationToken cancellationToken)
-    {
-        await _sessionRepository.DeleteByUserIdAsync(user.Id, cancellationToken);
-    }
+    public Task LogoutAllAsync(UserAccount user, CancellationToken cancellationToken) => Task.CompletedTask;
 }
