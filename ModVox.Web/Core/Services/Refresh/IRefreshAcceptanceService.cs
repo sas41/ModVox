@@ -4,11 +4,11 @@ namespace ModVox.Web.Refresh;
 
 public interface IRefreshAcceptanceService
 {
-    Task<RefreshAcceptanceResult> AcceptAsync(ModRecord mod, string? idempotencyKey, CancellationToken cancellationToken);
+    Task<RefreshAcceptanceResult> AcceptAsync(Mod mod, string? idempotencyKey, CancellationToken cancellationToken);
 }
 
 public sealed record RefreshAcceptanceResult(
     bool Accepted,
-    RefreshJobRecord? Job,
+    RefreshJob? Job,
     bool IsDuplicate,
     int? RetryAfterSeconds);

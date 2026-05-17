@@ -5,15 +5,15 @@ namespace ModVox.Web.Repositories;
 
 public sealed class InMemoryAccountSessionRepository : IAccountSessionRepository
 {
-    private readonly ConcurrentDictionary<string, AccountSessionRecord> _sessions = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, AccountSession> _sessions = new(StringComparer.Ordinal);
 
-    public Task AddAsync(AccountSessionRecord session, CancellationToken cancellationToken)
+    public Task AddAsync(AccountSession session, CancellationToken cancellationToken)
     {
         _sessions[session.SessionId] = session;
         return Task.CompletedTask;
     }
 
-    public Task<AccountSessionRecord?> GetBySessionIdAsync(string sessionId, CancellationToken cancellationToken)
+    public Task<AccountSession?> GetBySessionIdAsync(string sessionId, CancellationToken cancellationToken)
     {
         _sessions.TryGetValue(sessionId, out var session);
         return Task.FromResult(session);

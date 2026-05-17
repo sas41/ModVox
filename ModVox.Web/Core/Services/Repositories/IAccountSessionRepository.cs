@@ -4,8 +4,8 @@ namespace ModVox.Web.Repositories;
 
 public interface IAccountSessionRepository
 {
-    Task AddAsync(AccountSessionRecord session, CancellationToken cancellationToken);
-    Task<AccountSessionRecord?> GetBySessionIdAsync(string sessionId, CancellationToken cancellationToken);
+    Task AddAsync(AccountSession session, CancellationToken cancellationToken);
+    Task<AccountSession?> GetBySessionIdAsync(string sessionId, CancellationToken cancellationToken);
     Task DeleteAsync(string sessionId, CancellationToken cancellationToken);
     Task DeleteByUserIdAsync(Guid userId, CancellationToken cancellationToken);
 }

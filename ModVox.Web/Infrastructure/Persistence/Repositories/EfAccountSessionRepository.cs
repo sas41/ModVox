@@ -9,13 +9,13 @@ public sealed class EfAccountSessionRepository : IAccountSessionRepository
     private readonly ModVoxDbContext _db;
     public EfAccountSessionRepository(ModVoxDbContext db) => _db = db;
 
-    public async Task AddAsync(AccountSessionRecord session, CancellationToken cancellationToken)
+    public async Task AddAsync(AccountSession session, CancellationToken cancellationToken)
     {
         _db.AccountSessions.Add(session);
         await _db.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<AccountSessionRecord?> GetBySessionIdAsync(string sessionId, CancellationToken cancellationToken)
+    public async Task<AccountSession?> GetBySessionIdAsync(string sessionId, CancellationToken cancellationToken)
         => await _db.AccountSessions.AsNoTracking().FirstOrDefaultAsync(s => s.SessionId == sessionId, cancellationToken);
 
     public async Task DeleteAsync(string sessionId, CancellationToken cancellationToken)

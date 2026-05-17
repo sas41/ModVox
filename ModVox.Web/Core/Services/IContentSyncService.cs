@@ -4,7 +4,7 @@ namespace ModVox.Web.Services;
 
 public interface IContentSyncService
 {
-    Task<ContentSyncResult> SyncAsync(ModRecord mod, CancellationToken cancellationToken);
+    Task<ContentSyncResult> SyncAsync(Mod mod, CancellationToken cancellationToken);
 }
 
 public sealed record ContentSyncResult(

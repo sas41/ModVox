@@ -5,42 +5,42 @@ namespace ModVox.Web.Repositories;
 
 public sealed class InMemoryModReleaseRepository : IModReleaseRepository
 {
-    private readonly ConcurrentDictionary<Guid, ModReleaseRecord> _releases = new();
+    private readonly ConcurrentDictionary<Guid, ModRelease> _releases = new();
 
-    public Task<IReadOnlyList<ModReleaseRecord>> ListByModIdAsync(Guid modId, CancellationToken cancellationToken)
+    public Task<IReadOnlyList<ModRelease>> ListByModIdAsync(Guid modId, CancellationToken cancellationToken)
     {
         var releases = _releases.Values
             .Where(r => r.ModId == modId)
             .OrderByDescending(r => r.PublishedAt)
             .ToList();
-        return Task.FromResult<IReadOnlyList<ModReleaseRecord>>(releases);
+        return Task.FromResult<IReadOnlyList<ModRelease>>(releases);
     }
 
-    public Task<IReadOnlyDictionary<Guid, IReadOnlyList<ModReleaseRecord>>> ListByModIdsAsync(IEnumerable<Guid> modIds, CancellationToken cancellationToken)
+    public Task<IReadOnlyDictionary<Guid, IReadOnlyList<ModRelease>>> ListByModIdsAsync(IEnumerable<Guid> modIds, CancellationToken cancellationToken)
     {
         var idSet = modIds.Distinct().ToHashSet();
         var result = _releases.Values
             .Where(r => idSet.Contains(r.ModId))
             .GroupBy(r => r.ModId)
-            .ToDictionary(g => g.Key, g => (IReadOnlyList<ModReleaseRecord>)g.OrderByDescending(r => r.PublishedAt).ToList());
+            .ToDictionary(g => g.Key, g => (IReadOnlyList<ModRelease>)g.OrderByDescending(r => r.PublishedAt).ToList());
 
-        return Task.FromResult<IReadOnlyDictionary<Guid, IReadOnlyList<ModReleaseRecord>>>(result);
+        return Task.FromResult<IReadOnlyDictionary<Guid, IReadOnlyList<ModRelease>>>(result);
     }
 
-    public Task<ModReleaseRecord?> GetByIdAsync(Guid releaseId, CancellationToken cancellationToken)
+    public Task<ModRelease?> GetByIdAsync(Guid releaseId, CancellationToken cancellationToken)
     {
         _releases.TryGetValue(releaseId, out var release);
         return Task.FromResult(release);
     }
 
-    public Task<ModReleaseRecord?> GetByModAndTagAsync(Guid modId, string tagName, CancellationToken cancellationToken)
+    public Task<ModRelease?> GetByModAndTagAsync(Guid modId, string tagName, CancellationToken cancellationToken)
     {
         var release = _releases.Values.FirstOrDefault(r =>
             r.ModId == modId && string.Equals(r.TagName, tagName, StringComparison.Ordinal));
         return Task.FromResult(release);
     }
 
-    public Task<(IReadOnlyList<ModReleaseRecord> Items, int TotalCount)> SearchAsync(
+    public Task<(IReadOnlyList<ModRelease> Items, int TotalCount)> SearchAsync(
         ReleaseSearchQuery query, CancellationToken cancellationToken)
     {
         var q = _releases.Values.AsEnumerable();
@@ -60,16 +60,16 @@ public sealed class InMemoryModReleaseRepository : IModReleaseRepository
         var all = q.OrderByDescending(r => r.PublishedAt).ToList();
         var total = all.Count;
         var items = all.Skip((query.Page - 1) * query.PageSize).Take(query.PageSize).ToList();
-        return Task.FromResult<(IReadOnlyList<ModReleaseRecord>, int)>((items, total));
+        return Task.FromResult<(IReadOnlyList<ModRelease>, int)>((items, total));
     }
 
-    public Task UpsertAsync(ModReleaseRecord release, CancellationToken cancellationToken)
+    public Task UpsertAsync(ModRelease release, CancellationToken cancellationToken)
     {
         _releases[release.Id] = release;
         return Task.CompletedTask;
     }
 
-    public Task UpdateAsync(ModReleaseRecord release, CancellationToken cancellationToken)
+    public Task UpdateAsync(ModRelease release, CancellationToken cancellationToken)
     {
         _releases[release.Id] = release;
         return Task.CompletedTask;

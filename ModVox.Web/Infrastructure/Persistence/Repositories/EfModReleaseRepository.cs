@@ -9,19 +9,19 @@ public sealed class EfModReleaseRepository : IModReleaseRepository
     private readonly ModVoxDbContext _db;
     public EfModReleaseRepository(ModVoxDbContext db) => _db = db;
 
-    public async Task<IReadOnlyList<ModReleaseRecord>> ListByModIdAsync(Guid modId, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<ModRelease>> ListByModIdAsync(Guid modId, CancellationToken cancellationToken)
         => await _db.ModReleases.AsNoTracking()
             .Include(r => r.Artifacts)
             .Where(r => r.ModId == modId)
             .OrderByDescending(r => r.PublishedAt)
             .ToListAsync(cancellationToken);
 
-    public async Task<IReadOnlyDictionary<Guid, IReadOnlyList<ModReleaseRecord>>> ListByModIdsAsync(IEnumerable<Guid> modIds, CancellationToken cancellationToken)
+    public async Task<IReadOnlyDictionary<Guid, IReadOnlyList<ModRelease>>> ListByModIdsAsync(IEnumerable<Guid> modIds, CancellationToken cancellationToken)
     {
         var ids = modIds.Distinct().ToArray();
         if (ids.Length == 0)
         {
-            return new Dictionary<Guid, IReadOnlyList<ModReleaseRecord>>();
+            return new Dictionary<Guid, IReadOnlyList<ModRelease>>();
         }
 
         var releases = await _db.ModReleases.AsNoTracking()
@@ -32,20 +32,20 @@ public sealed class EfModReleaseRepository : IModReleaseRepository
 
         return releases
             .GroupBy(r => r.ModId)
-            .ToDictionary(g => g.Key, g => (IReadOnlyList<ModReleaseRecord>)g.ToList());
+            .ToDictionary(g => g.Key, g => (IReadOnlyList<ModRelease>)g.ToList());
     }
 
-    public async Task<ModReleaseRecord?> GetByIdAsync(Guid releaseId, CancellationToken cancellationToken)
+    public async Task<ModRelease?> GetByIdAsync(Guid releaseId, CancellationToken cancellationToken)
         => await _db.ModReleases.AsNoTracking()
             .Include(r => r.Artifacts)
             .FirstOrDefaultAsync(r => r.Id == releaseId, cancellationToken);
 
-    public async Task<ModReleaseRecord?> GetByModAndTagAsync(Guid modId, string tagName, CancellationToken cancellationToken)
+    public async Task<ModRelease?> GetByModAndTagAsync(Guid modId, string tagName, CancellationToken cancellationToken)
         => await _db.ModReleases.AsNoTracking()
             .Include(r => r.Artifacts)
             .FirstOrDefaultAsync(r => r.ModId == modId && r.TagName == tagName, cancellationToken);
 
-    public async Task<(IReadOnlyList<ModReleaseRecord> Items, int TotalCount)> SearchAsync(
+    public async Task<(IReadOnlyList<ModRelease> Items, int TotalCount)> SearchAsync(
         ReleaseSearchQuery query, CancellationToken cancellationToken)
     {
         var q = _db.ModReleases.AsNoTracking()
@@ -80,7 +80,7 @@ public sealed class EfModReleaseRepository : IModReleaseRepository
         return (items, total);
     }
 
-    public async Task UpsertAsync(ModReleaseRecord release, CancellationToken cancellationToken)
+    public async Task UpsertAsync(ModRelease release, CancellationToken cancellationToken)
     {
         var existing = await _db.ModReleases.AsNoTracking()
             .FirstOrDefaultAsync(r => r.ModId == release.ModId && r.TagName == release.TagName, cancellationToken);
@@ -97,9 +97,9 @@ public sealed class EfModReleaseRepository : IModReleaseRepository
 
             foreach (var a in release.Artifacts)
                 _db.ModReleaseArtifacts.Add(
-                    new ModReleaseArtifactRecord(a.Id, existing.Id, a.FileName, a.ContentType, a.Size, a.DownloadUrl));
+                    new ModReleaseArtifact(a.Id, existing.Id, a.FileName, a.ContentType, a.Size, a.DownloadUrl));
 
-            _db.ModReleases.Update(new ModReleaseRecord(
+            _db.ModReleases.Update(new ModRelease(
                 existing.Id, release.ModId, release.TagName, release.Name,
                 release.IsPrerelease, release.PublishedAt, release.FetchedAt)
             { IsHidden = release.IsHidden });
@@ -108,7 +108,7 @@ public sealed class EfModReleaseRepository : IModReleaseRepository
         await _db.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task UpdateAsync(ModReleaseRecord release, CancellationToken cancellationToken)
+    public async Task UpdateAsync(ModRelease release, CancellationToken cancellationToken)
     {
         _db.ModReleases.Update(release);
         await _db.SaveChangesAsync(cancellationToken);

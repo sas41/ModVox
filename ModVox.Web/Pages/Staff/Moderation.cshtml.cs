@@ -53,14 +53,14 @@ public sealed class ModerationModel : PageModel
 
         var games = await _gameRepository.ListAsync(cancellationToken);
         var gameIds = games.Select(x => x.Id).Distinct().ToList();
-        var list = new List<ModRecord>();
+        var list = new List<Mod>();
         foreach (var gameId in gameIds)
         {
             var modsByGame = await _modRepository.ListByGameIdAsync(gameId, cancellationToken);
             list.AddRange(modsByGame);
         }
 
-        IEnumerable<ModRecord> filtered = list
+        IEnumerable<Mod> filtered = list
             .GroupBy(x => x.Id)
             .Select(x => x.First())
             .OrderByDescending(x => x.UpdatedAt);

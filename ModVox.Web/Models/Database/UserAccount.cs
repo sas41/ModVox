@@ -58,9 +58,9 @@ public record class UserAccount
     public DateTimeOffset UpdatedAt { get; init; }
 
     // Navigation properties
-    public virtual ICollection<ModRecord> Mods { get; protected set; } = new List<ModRecord>();
-    public virtual ICollection<AccountSessionRecord> Sessions { get; protected set; } = new List<AccountSessionRecord>();
-    public virtual ICollection<ModReportRecord> Reports { get; protected set; } = new List<ModReportRecord>();
+    public virtual ICollection<Mod> Mods { get; protected set; } = new List<Mod>();
+    public virtual ICollection<AccountSession> Sessions { get; protected set; } = new List<AccountSession>();
+    public virtual ICollection<ModReport> Reports { get; protected set; } = new List<ModReport>();
 
     protected UserAccount() { }
 

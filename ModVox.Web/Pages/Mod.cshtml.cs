@@ -122,7 +122,7 @@ public sealed class ModModel : PageModel
         }
     }
 
-    private static string BuildRepositoryUrl(ModRecord mod)
+    private static string BuildRepositoryUrl(Mod mod)
     {
         if (string.Equals(mod.Provider, "github", StringComparison.OrdinalIgnoreCase))
         {
@@ -132,13 +132,13 @@ public sealed class ModModel : PageModel
         return string.Empty;
     }
 
-    private static string BuildDiscussionsUrl(ModRecord mod)
+    private static string BuildDiscussionsUrl(Mod mod)
     {
         var repoUrl = BuildRepositoryUrl(mod);
         return string.IsNullOrWhiteSpace(repoUrl) ? string.Empty : $"{repoUrl}/discussions";
     }
 
-    private static string BuildIssuesUrl(ModRecord mod)
+    private static string BuildIssuesUrl(Mod mod)
     {
         var repoUrl = BuildRepositoryUrl(mod);
         return string.IsNullOrWhiteSpace(repoUrl) ? string.Empty : $"{repoUrl}/issues";

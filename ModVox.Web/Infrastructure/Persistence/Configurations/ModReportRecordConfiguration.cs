@@ -4,9 +4,9 @@ using ModVox.Web.Domain;
 
 namespace ModVox.Web.Infrastructure.Persistence.Configurations;
 
-public sealed class ModReportRecordConfiguration : IEntityTypeConfiguration<ModReportRecord>
+public sealed class ModReportConfiguration : IEntityTypeConfiguration<ModReport>
 {
-    public void Configure(EntityTypeBuilder<ModReportRecord> builder)
+    public void Configure(EntityTypeBuilder<ModReport> builder)
     {
         builder.HasIndex(r => r.ModId).HasDatabaseName("ix_mod_reports_mod_id");
         builder.HasIndex(r => r.Status).HasDatabaseName("ix_mod_reports_status");

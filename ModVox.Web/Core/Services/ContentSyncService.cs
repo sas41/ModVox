@@ -35,7 +35,7 @@ public sealed class ContentSyncService : IContentSyncService
         _dbContext = dbContext;
     }
 
-    public async Task<ContentSyncResult> SyncAsync(ModRecord mod, CancellationToken cancellationToken)
+    public async Task<ContentSyncResult> SyncAsync(Mod mod, CancellationToken cancellationToken)
     {
         const string manifestStep = "manifest";
         const string verifyStep = "verify";
@@ -128,7 +128,7 @@ public sealed class ContentSyncService : IContentSyncService
             {
                 existingByTag.TryGetValue(release.TagName, out var existing);
                 var releaseId = existing?.Id ?? Guid.NewGuid();
-                var mapped = new ModReleaseRecord(
+                var mapped = new ModRelease(
                     releaseId,
                     mod.Id,
                     release.TagName,
@@ -142,7 +142,7 @@ public sealed class ContentSyncService : IContentSyncService
 
                 foreach (var artifact in release.Artifacts)
                 {
-                    mapped.Artifacts.Add(new ModReleaseArtifactRecord(
+                    mapped.Artifacts.Add(new ModReleaseArtifact(
                         Guid.NewGuid(),
                         releaseId,
                         artifact.Name,

@@ -1,6 +1,8 @@
 services:
   web:
     image: ${MODVOX_WEB_IMAGE:-ghcr.io/sas41/modvox-web:latest}
+    volumes:
+      - modvox-dpkeys:/var/lib/modvox/dpkeys
     env_file:
       - path: modvox.env
         required: true
@@ -45,3 +47,4 @@ services:
 
 volumes:
   postgres-data:
+  modvox-dpkeys:

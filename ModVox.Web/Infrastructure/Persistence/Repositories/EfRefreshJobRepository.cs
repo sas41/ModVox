@@ -9,16 +9,16 @@ public sealed class EfRefreshJobRepository : IRefreshJobRepository
     private readonly ModVoxDbContext _db;
     public EfRefreshJobRepository(ModVoxDbContext db) => _db = db;
 
-    public async Task AddAsync(RefreshJobRecord job, CancellationToken cancellationToken)
+    public async Task AddAsync(RefreshJob job, CancellationToken cancellationToken)
     {
         _db.RefreshJobs.Add(job);
         await _db.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<RefreshJobRecord?> GetByIdAsync(Guid jobId, CancellationToken cancellationToken)
+    public async Task<RefreshJob?> GetByIdAsync(Guid jobId, CancellationToken cancellationToken)
         => await _db.RefreshJobs.FindAsync(new object[] { jobId }, cancellationToken);
 
-    public async Task<RefreshJobRecord?> FindByModAndKeyAsync(Guid modId, string? idempotencyKey, CancellationToken cancellationToken)
+    public async Task<RefreshJob?> FindByModAndKeyAsync(Guid modId, string? idempotencyKey, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(idempotencyKey)) return null;
         return await _db.RefreshJobs.AsNoTracking()
@@ -26,7 +26,7 @@ public sealed class EfRefreshJobRepository : IRefreshJobRepository
             .FirstOrDefaultAsync(j => j.ModId == modId && j.IdempotencyKey == idempotencyKey, cancellationToken);
     }
 
-    public async Task<RefreshJobRecord?> FindActiveByModAndKeyAsync(Guid modId, string? idempotencyKey, CancellationToken cancellationToken)
+    public async Task<RefreshJob?> FindActiveByModAndKeyAsync(Guid modId, string? idempotencyKey, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(idempotencyKey)) return null;
         return await _db.RefreshJobs.AsNoTracking().FirstOrDefaultAsync(j =>
@@ -36,7 +36,7 @@ public sealed class EfRefreshJobRepository : IRefreshJobRepository
             cancellationToken);
     }
 
-    public async Task UpdateAsync(RefreshJobRecord job, CancellationToken cancellationToken)
+    public async Task UpdateAsync(RefreshJob job, CancellationToken cancellationToken)
     {
         _db.RefreshJobs.Update(job);
         await _db.SaveChangesAsync(cancellationToken);

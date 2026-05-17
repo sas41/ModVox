@@ -5,25 +5,25 @@ namespace ModVox.Web.Repositories;
 
 public sealed class InMemoryRefreshJobRepository : IRefreshJobRepository
 {
-    private readonly ConcurrentDictionary<Guid, RefreshJobRecord> _jobs = new();
+    private readonly ConcurrentDictionary<Guid, RefreshJob> _jobs = new();
 
-    public Task AddAsync(RefreshJobRecord job, CancellationToken cancellationToken)
+    public Task AddAsync(RefreshJob job, CancellationToken cancellationToken)
     {
         _jobs[job.Id] = job;
         return Task.CompletedTask;
     }
 
-    public Task<RefreshJobRecord?> GetByIdAsync(Guid jobId, CancellationToken cancellationToken)
+    public Task<RefreshJob?> GetByIdAsync(Guid jobId, CancellationToken cancellationToken)
     {
         _jobs.TryGetValue(jobId, out var job);
         return Task.FromResult(job);
     }
 
-    public Task<RefreshJobRecord?> FindByModAndKeyAsync(Guid modId, string? idempotencyKey, CancellationToken cancellationToken)
+    public Task<RefreshJob?> FindByModAndKeyAsync(Guid modId, string? idempotencyKey, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(idempotencyKey))
         {
-            return Task.FromResult<RefreshJobRecord?>(null);
+            return Task.FromResult<RefreshJob?>(null);
         }
 
         var job = _jobs.Values
@@ -34,7 +34,7 @@ public sealed class InMemoryRefreshJobRepository : IRefreshJobRepository
         return Task.FromResult(job);
     }
 
-    public Task<RefreshJobRecord?> FindActiveByModAndKeyAsync(Guid modId, string? idempotencyKey, CancellationToken cancellationToken)
+    public Task<RefreshJob?> FindActiveByModAndKeyAsync(Guid modId, string? idempotencyKey, CancellationToken cancellationToken)
     {
         var job = _jobs.Values.FirstOrDefault(x =>
             x.ModId == modId &&
@@ -45,7 +45,7 @@ public sealed class InMemoryRefreshJobRepository : IRefreshJobRepository
         return Task.FromResult(job);
     }
 
-    public Task UpdateAsync(RefreshJobRecord job, CancellationToken cancellationToken)
+    public Task UpdateAsync(RefreshJob job, CancellationToken cancellationToken)
     {
         _jobs[job.Id] = job;
         return Task.CompletedTask;

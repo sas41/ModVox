@@ -10,6 +10,7 @@ services:
       - modvox-nuget:/root/.nuget/packages
       - modvox-web-obj:/src/ModVox.Web/obj
       - modvox-web-bin:/src/ModVox.Web/bin
+      - modvox-dpkeys:/var/lib/modvox/dpkeys
     env_file:
       - path: modvox.env
         required: true
@@ -60,3 +61,4 @@ volumes:
   modvox-nuget:
   modvox-web-obj:
   modvox-web-bin:
+  modvox-dpkeys:

@@ -9,22 +9,22 @@ public sealed class EfGameRepository : IGameRepository
     private readonly ModVoxDbContext _db;
     public EfGameRepository(ModVoxDbContext db) => _db = db;
 
-    public async Task<GameRecord?> GetByIdAsync(Guid gameId, CancellationToken cancellationToken)
+    public async Task<Game?> GetByIdAsync(Guid gameId, CancellationToken cancellationToken)
         => await _db.Games.AsNoTracking().FirstOrDefaultAsync(g => g.Id == gameId, cancellationToken);
 
-    public async Task<GameRecord?> GetBySlugAsync(string slug, CancellationToken cancellationToken)
+    public async Task<Game?> GetBySlugAsync(string slug, CancellationToken cancellationToken)
         => await _db.Games.AsNoTracking().FirstOrDefaultAsync(g => g.Slug == slug, cancellationToken);
 
-    public async Task<IReadOnlyList<GameRecord>> ListAsync(CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<Game>> ListAsync(CancellationToken cancellationToken)
         => await _db.Games.AsNoTracking().OrderBy(g => g.Name).ToListAsync(cancellationToken);
 
-    public async Task AddAsync(GameRecord game, CancellationToken cancellationToken)
+    public async Task AddAsync(Game game, CancellationToken cancellationToken)
     {
         _db.Games.Add(game);
         await _db.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task UpdateAsync(GameRecord game, CancellationToken cancellationToken)
+    public async Task UpdateAsync(Game game, CancellationToken cancellationToken)
     {
         _db.Games.Update(game);
         await _db.SaveChangesAsync(cancellationToken);

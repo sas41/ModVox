@@ -4,9 +4,9 @@ using ModVox.Web.Domain;
 
 namespace ModVox.Web.Infrastructure.Persistence.Configurations;
 
-public sealed class TagRecordConfiguration : IEntityTypeConfiguration<TagRecord>
+public sealed class TagConfiguration : IEntityTypeConfiguration<Tag>
 {
-    public void Configure(EntityTypeBuilder<TagRecord> builder)
+    public void Configure(EntityTypeBuilder<Tag> builder)
     {
         builder.HasIndex(t => t.Label).IsUnique().HasDatabaseName("ix_tags_label");
     }

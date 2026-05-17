@@ -4,9 +4,9 @@ using ModVox.Web.Domain;
 
 namespace ModVox.Web.Infrastructure.Persistence.Configurations;
 
-public sealed class GameRecordConfiguration : IEntityTypeConfiguration<GameRecord>
+public sealed class GameConfiguration : IEntityTypeConfiguration<Game>
 {
-    public void Configure(EntityTypeBuilder<GameRecord> builder)
+    public void Configure(EntityTypeBuilder<Game> builder)
     {
         builder.HasIndex(g => g.Slug).IsUnique().HasDatabaseName("ix_games_slug");
 

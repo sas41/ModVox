@@ -1,11 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using System.Threading.RateLimiting;
+using System.IO;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.DataProtection;
 using ModVox.Web.Caching;
 using ModVox.Web.Config;
-using ModVox.Web.Endpoints;
 using ModVox.Web.Domain;
 using ModVox.Web.Infrastructure.Persistence;
 using ModVox.Web.Infrastructure.Persistence.Repositories;
@@ -27,6 +28,16 @@ builder.Services.Configure<ManifestOptions>(builder.Configuration.GetSection(Man
 
 builder.Services.AddMemoryCache();
 builder.Services.AddHttpClient();
+var dataProtectionKeysPath = builder.Configuration["DATAPROTECTION_KEYS_PATH"];
+if (string.IsNullOrWhiteSpace(dataProtectionKeysPath))
+{
+    dataProtectionKeysPath = "/var/lib/modvox/dpkeys";
+}
+builder.Services
+    .AddDataProtection()
+    .SetApplicationName("ModVox")
+    .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeysPath));
+builder.Services.AddControllers();
 builder.Services.AddRazorPages();
 builder.Services.AddAntiforgery(options =>
 {
@@ -185,12 +196,6 @@ builder.Services.AddScoped<IManifestService, ManifestService>();
 builder.Services.AddScoped<IUserBootstrapService, UserBootstrapService>();
 builder.Services.AddScoped<ITagBootstrapService, TagBootstrapService>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
-builder.Services.AddSingleton<IEndpoint, GamesController>();
-builder.Services.AddSingleton<IEndpoint, ModsController>();
-builder.Services.AddSingleton<IEndpoint, StaffController>();
-builder.Services.AddSingleton<IEndpoint, UserController>();
-builder.Services.AddSingleton<IEndpoint, ApiController>();
-builder.Services.AddSingleton<IEndpoint, ThunderstoreController>();
 
 var app = builder.Build();
 
@@ -270,7 +275,7 @@ app.MapGet("/pages/{**slug}", async (string slug, IStaticPageService staticPageS
     var html = await staticPageService.RenderPageHtmlAsync(slug, cancellationToken);
     return html is null ? Results.NotFound() : Results.Content(html, "text/html");
 });
+app.MapControllers();
 app.MapRazorPages();
-app.MapEndpoints();
 
 app.Run();

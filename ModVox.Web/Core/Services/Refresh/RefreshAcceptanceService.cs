@@ -24,7 +24,7 @@ public sealed class RefreshAcceptanceService : IRefreshAcceptanceService
         _options = options.Value;
     }
 
-    public async Task<RefreshAcceptanceResult> AcceptAsync(ModRecord mod, string? idempotencyKey, CancellationToken cancellationToken)
+    public async Task<RefreshAcceptanceResult> AcceptAsync(Mod mod, string? idempotencyKey, CancellationToken cancellationToken)
     {
         if (!string.IsNullOrWhiteSpace(idempotencyKey))
         {
@@ -47,7 +47,7 @@ public sealed class RefreshAcceptanceService : IRefreshAcceptanceService
             }
         }
 
-        var job = new RefreshJobRecord(
+        var job = new RefreshJob(
             Guid.NewGuid(),
             mod.Id,
             mod.Provider,

@@ -14,7 +14,7 @@ public sealed class AuditLogService : IAuditLogService
 
     public Task WriteAsync(string eventType, Guid? actorUserId, string description, CancellationToken cancellationToken)
     {
-        var record = new AuditLogRecord(
+        var record = new AuditLog(
             Guid.NewGuid(),
             DateTimeOffset.UtcNow,
             eventType,

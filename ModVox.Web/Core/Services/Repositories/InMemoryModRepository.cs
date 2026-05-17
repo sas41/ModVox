@@ -5,21 +5,21 @@ namespace ModVox.Web.Repositories;
 
 public sealed class InMemoryModRepository : IModRepository
 {
-    private readonly ConcurrentDictionary<Guid, ModRecord> _mods = new();
+    private readonly ConcurrentDictionary<Guid, Mod> _mods = new();
 
-    public Task<ModRecord?> GetByIdAsync(Guid modId, CancellationToken cancellationToken)
+    public Task<Mod?> GetByIdAsync(Guid modId, CancellationToken cancellationToken)
     {
         _mods.TryGetValue(modId, out var mod);
         return Task.FromResult(mod);
     }
 
-    public Task<ModRecord?> GetByHashedKeyAsync(string hashedKey, CancellationToken cancellationToken)
+    public Task<Mod?> GetByHashedKeyAsync(string hashedKey, CancellationToken cancellationToken)
     {
         var mod = _mods.Values.FirstOrDefault(x => x.KeyHash == hashedKey);
         return Task.FromResult(mod);
     }
 
-    public Task<ModRecord?> GetByCoordinatesAsync(string provider, string owner, string repository, CancellationToken cancellationToken)
+    public Task<Mod?> GetByCoordinatesAsync(string provider, string owner, string repository, CancellationToken cancellationToken)
     {
         var mod = _mods.Values.FirstOrDefault(x =>
             string.Equals(x.Provider, provider, StringComparison.OrdinalIgnoreCase) &&
@@ -29,53 +29,53 @@ public sealed class InMemoryModRepository : IModRepository
         return Task.FromResult(mod);
     }
 
-    public Task<IReadOnlyList<ModRecord>> ListByGameIdAsync(Guid gameId, CancellationToken cancellationToken)
+    public Task<IReadOnlyList<Mod>> ListByGameIdAsync(Guid gameId, CancellationToken cancellationToken)
     {
         var mods = _mods.Values.Where(x => x.GameId == gameId).ToList();
-        return Task.FromResult<IReadOnlyList<ModRecord>>(mods);
+        return Task.FromResult<IReadOnlyList<Mod>>(mods);
     }
 
-    public Task<IReadOnlyList<ModRecord>> ListVisibleAsync(CancellationToken cancellationToken)
+    public Task<IReadOnlyList<Mod>> ListVisibleAsync(CancellationToken cancellationToken)
     {
         var mods = _mods.Values
             .Where(x => IsPubliclyVisible(x.ModerationStatus))
             .ToList();
 
-        return Task.FromResult<IReadOnlyList<ModRecord>>(mods);
+        return Task.FromResult<IReadOnlyList<Mod>>(mods);
     }
 
-    public Task<IReadOnlyList<ModRecord>> ListVisibleByGameIdAsync(Guid gameId, CancellationToken cancellationToken)
+    public Task<IReadOnlyList<Mod>> ListVisibleByGameIdAsync(Guid gameId, CancellationToken cancellationToken)
     {
         var mods = _mods.Values
             .Where(x => x.GameId == gameId && IsPubliclyVisible(x.ModerationStatus))
             .ToList();
 
-        return Task.FromResult<IReadOnlyList<ModRecord>>(mods);
+        return Task.FromResult<IReadOnlyList<Mod>>(mods);
     }
 
-    public Task<IReadOnlyList<ModRecord>> ListByMaintainerUserIdAsync(Guid maintainerUserId, CancellationToken cancellationToken)
+    public Task<IReadOnlyList<Mod>> ListByMaintainerUserIdAsync(Guid maintainerUserId, CancellationToken cancellationToken)
     {
         var mods = _mods.Values
             .Where(x => x.MaintainerUserId == maintainerUserId)
             .OrderBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        return Task.FromResult<IReadOnlyList<ModRecord>>(mods);
+        return Task.FromResult<IReadOnlyList<Mod>>(mods);
     }
 
-    public Task<ModRecord?> GetByGameAndIdAsync(Guid gameId, Guid modId, bool includeHidden, CancellationToken cancellationToken)
+    public Task<Mod?> GetByGameAndIdAsync(Guid gameId, Guid modId, bool includeHidden, CancellationToken cancellationToken)
     {
         if (!_mods.TryGetValue(modId, out var mod) || mod.GameId != gameId)
         {
-            return Task.FromResult<ModRecord?>(null);
+            return Task.FromResult<Mod?>(null);
         }
 
         if (!includeHidden && !IsPubliclyVisible(mod.ModerationStatus))
         {
-            return Task.FromResult<ModRecord?>(null);
+            return Task.FromResult<Mod?>(null);
         }
 
-        return Task.FromResult<ModRecord?>(mod);
+        return Task.FromResult<Mod?>(mod);
     }
 
     public Task<bool> HasFlaggedOrHiddenModsForMaintainerAsync(Guid maintainerUserId, CancellationToken cancellationToken)
@@ -95,13 +95,13 @@ public sealed class InMemoryModRepository : IModRepository
         string.Equals(status, ModModerationStatus.Approved, StringComparison.OrdinalIgnoreCase) ||
         string.Equals(status, ModModerationStatus.Pending, StringComparison.OrdinalIgnoreCase);
 
-    public Task AddAsync(ModRecord mod, CancellationToken cancellationToken)
+    public Task AddAsync(Mod mod, CancellationToken cancellationToken)
     {
         _mods[mod.Id] = mod;
         return Task.CompletedTask;
     }
 
-    public Task UpdateAsync(ModRecord mod, CancellationToken cancellationToken)
+    public Task UpdateAsync(Mod mod, CancellationToken cancellationToken)
     {
         _mods[mod.Id] = mod;
         return Task.CompletedTask;

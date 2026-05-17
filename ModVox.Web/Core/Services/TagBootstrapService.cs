@@ -40,7 +40,7 @@ public sealed class TagBootstrapService : ITagBootstrapService
                 continue;
             }
 
-            await _tagRepository.AddAsync(new TagRecord(Guid.NewGuid(), label, now, now), cancellationToken);
+            await _tagRepository.AddAsync(new Tag(Guid.NewGuid(), label, now, now), cancellationToken);
         }
     }
 }

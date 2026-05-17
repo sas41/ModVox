@@ -4,9 +4,9 @@ namespace ModVox.Web.Repositories;
 
 public interface IRefreshJobRepository
 {
-    Task AddAsync(RefreshJobRecord job, CancellationToken cancellationToken);
-    Task<RefreshJobRecord?> GetByIdAsync(Guid jobId, CancellationToken cancellationToken);
-    Task<RefreshJobRecord?> FindByModAndKeyAsync(Guid modId, string? idempotencyKey, CancellationToken cancellationToken);
-    Task<RefreshJobRecord?> FindActiveByModAndKeyAsync(Guid modId, string? idempotencyKey, CancellationToken cancellationToken);
-    Task UpdateAsync(RefreshJobRecord job, CancellationToken cancellationToken);
+    Task AddAsync(RefreshJob job, CancellationToken cancellationToken);
+    Task<RefreshJob?> GetByIdAsync(Guid jobId, CancellationToken cancellationToken);
+    Task<RefreshJob?> FindByModAndKeyAsync(Guid modId, string? idempotencyKey, CancellationToken cancellationToken);
+    Task<RefreshJob?> FindActiveByModAndKeyAsync(Guid modId, string? idempotencyKey, CancellationToken cancellationToken);
+    Task UpdateAsync(RefreshJob job, CancellationToken cancellationToken);
 }

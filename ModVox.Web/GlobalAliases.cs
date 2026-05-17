@@ -1,9 +1,0 @@
-global using AccountSessionRecord = ModVox.Web.Domain.AccountSession;
-global using AuditLogRecord = ModVox.Web.Domain.AuditLog;
-global using GameRecord = ModVox.Web.Domain.Game;
-global using ModRecord = ModVox.Web.Domain.Mod;
-global using ModReleaseArtifactRecord = ModVox.Web.Domain.ModReleaseArtifact;
-global using ModReleaseRecord = ModVox.Web.Domain.ModRelease;
-global using ModReportRecord = ModVox.Web.Domain.ModReport;
-global using RefreshJobRecord = ModVox.Web.Domain.RefreshJob;
-global using TagRecord = ModVox.Web.Domain.Tag;

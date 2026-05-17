@@ -5,18 +5,18 @@ namespace ModVox.Web.Repositories;
 
 public sealed class InMemoryAuditLogRepository : IAuditLogRepository
 {
-    private readonly ConcurrentDictionary<Guid, AuditLogRecord> _records = new();
+    private readonly ConcurrentDictionary<Guid, AuditLog> _records = new();
 
-    public Task AddAsync(AuditLogRecord record, CancellationToken cancellationToken)
+    public Task AddAsync(AuditLog record, CancellationToken cancellationToken)
     {
         _records[record.Id] = record;
         return Task.CompletedTask;
     }
 
-    public Task<IReadOnlyList<AuditLogRecord>> ListAsync(CancellationToken cancellationToken)
+    public Task<IReadOnlyList<AuditLog>> ListAsync(CancellationToken cancellationToken)
     {
         var logs = _records.Values.OrderBy(x => x.CreatedAt).ToList();
-        return Task.FromResult<IReadOnlyList<AuditLogRecord>>(logs);
+        return Task.FromResult<IReadOnlyList<AuditLog>>(logs);
     }
 
     public Task PurgeAsync(CancellationToken cancellationToken)

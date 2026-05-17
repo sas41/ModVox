@@ -5,9 +5,9 @@ using ModVox.Web.Domain;
 
 namespace ModVox.Web.Infrastructure.Persistence.Configurations;
 
-public sealed class ModRecordConfiguration : IEntityTypeConfiguration<ModRecord>
+public sealed class ModConfiguration : IEntityTypeConfiguration<Mod>
 {
-    public void Configure(EntityTypeBuilder<ModRecord> builder)
+    public void Configure(EntityTypeBuilder<Mod> builder)
     {
         // TagIds stored as a Postgres UUID array
         builder.Property(m => m.TagIds)

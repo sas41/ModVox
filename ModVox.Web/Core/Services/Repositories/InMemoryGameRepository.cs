@@ -5,36 +5,36 @@ namespace ModVox.Web.Repositories;
 
 public sealed class InMemoryGameRepository : IGameRepository
 {
-    private readonly ConcurrentDictionary<Guid, GameRecord> _games = new();
+    private readonly ConcurrentDictionary<Guid, Game> _games = new();
 
-    public Task<GameRecord?> GetByIdAsync(Guid gameId, CancellationToken cancellationToken)
+    public Task<Game?> GetByIdAsync(Guid gameId, CancellationToken cancellationToken)
     {
         _games.TryGetValue(gameId, out var game);
         return Task.FromResult(game);
     }
 
-    public Task<GameRecord?> GetBySlugAsync(string slug, CancellationToken cancellationToken)
+    public Task<Game?> GetBySlugAsync(string slug, CancellationToken cancellationToken)
     {
         var game = _games.Values.FirstOrDefault(x => string.Equals(x.Slug, slug, StringComparison.OrdinalIgnoreCase));
         return Task.FromResult(game);
     }
 
-    public Task AddAsync(GameRecord game, CancellationToken cancellationToken)
+    public Task AddAsync(Game game, CancellationToken cancellationToken)
     {
         _games[game.Id] = game;
         return Task.CompletedTask;
     }
 
-    public Task<IReadOnlyList<GameRecord>> ListAsync(CancellationToken cancellationToken)
+    public Task<IReadOnlyList<Game>> ListAsync(CancellationToken cancellationToken)
     {
         var games = _games.Values
             .OrderBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        return Task.FromResult<IReadOnlyList<GameRecord>>(games);
+        return Task.FromResult<IReadOnlyList<Game>>(games);
     }
 
-    public Task UpdateAsync(GameRecord game, CancellationToken cancellationToken)
+    public Task UpdateAsync(Game game, CancellationToken cancellationToken)
     {
         _games[game.Id] = game;
         return Task.CompletedTask;

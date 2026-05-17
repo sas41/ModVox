@@ -9,13 +9,13 @@ public sealed class EfAuditLogRepository : IAuditLogRepository
     private readonly ModVoxDbContext _db;
     public EfAuditLogRepository(ModVoxDbContext db) => _db = db;
 
-    public async Task AddAsync(AuditLogRecord record, CancellationToken cancellationToken)
+    public async Task AddAsync(AuditLog record, CancellationToken cancellationToken)
     {
         _db.AuditLog.Add(record);
         await _db.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<IReadOnlyList<AuditLogRecord>> ListAsync(CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<AuditLog>> ListAsync(CancellationToken cancellationToken)
         => await _db.AuditLog.AsNoTracking().OrderBy(a => a.CreatedAt).ToListAsync(cancellationToken);
 
     public async Task PurgeAsync(CancellationToken cancellationToken)

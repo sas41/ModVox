@@ -4,14 +4,14 @@ namespace ModVox.Web.Repositories;
 
 public interface IModReleaseRepository
 {
-    Task<IReadOnlyList<ModReleaseRecord>> ListByModIdAsync(Guid modId, CancellationToken cancellationToken);
-    Task<IReadOnlyDictionary<Guid, IReadOnlyList<ModReleaseRecord>>> ListByModIdsAsync(IEnumerable<Guid> modIds, CancellationToken cancellationToken);
-    Task<ModReleaseRecord?> GetByIdAsync(Guid releaseId, CancellationToken cancellationToken);
-    Task<ModReleaseRecord?> GetByModAndTagAsync(Guid modId, string tagName, CancellationToken cancellationToken);
-    Task<(IReadOnlyList<ModReleaseRecord> Items, int TotalCount)> SearchAsync(
+    Task<IReadOnlyList<ModRelease>> ListByModIdAsync(Guid modId, CancellationToken cancellationToken);
+    Task<IReadOnlyDictionary<Guid, IReadOnlyList<ModRelease>>> ListByModIdsAsync(IEnumerable<Guid> modIds, CancellationToken cancellationToken);
+    Task<ModRelease?> GetByIdAsync(Guid releaseId, CancellationToken cancellationToken);
+    Task<ModRelease?> GetByModAndTagAsync(Guid modId, string tagName, CancellationToken cancellationToken);
+    Task<(IReadOnlyList<ModRelease> Items, int TotalCount)> SearchAsync(
         ReleaseSearchQuery query, CancellationToken cancellationToken);
-    Task UpsertAsync(ModReleaseRecord release, CancellationToken cancellationToken);
-    Task UpdateAsync(ModReleaseRecord release, CancellationToken cancellationToken);
+    Task UpsertAsync(ModRelease release, CancellationToken cancellationToken);
+    Task UpdateAsync(ModRelease release, CancellationToken cancellationToken);
     Task DeleteAsync(Guid releaseId, CancellationToken cancellationToken);
     Task DeleteByModIdAsync(Guid modId, CancellationToken cancellationToken);
 }
