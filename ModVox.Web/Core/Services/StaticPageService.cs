@@ -2,41 +2,41 @@ namespace ModVox.Web.Services;
 
 public sealed class StaticPageService : IStaticPageService
 {
-    private readonly IWebHostEnvironment _environment;
-    private readonly IMarkdownRenderer _markdownRenderer;
+  private readonly IWebHostEnvironment _environment;
+  private readonly IMarkdownRenderer _markdownRenderer;
 
-    public StaticPageService(IWebHostEnvironment environment, IMarkdownRenderer markdownRenderer)
+  public StaticPageService(IWebHostEnvironment environment, IMarkdownRenderer markdownRenderer)
+  {
+    _environment = environment;
+    _markdownRenderer = markdownRenderer;
+  }
+
+  public async Task<string?> RenderPageHtmlAsync(string slug, CancellationToken cancellationToken)
+  {
+    var safeSlug = string.IsNullOrWhiteSpace(slug) ? "index" : slug.Trim().ToLowerInvariant();
+    safeSlug = safeSlug.Replace('\\', '/');
+    if (safeSlug.StartsWith("/", StringComparison.Ordinal))
     {
-        _environment = environment;
-        _markdownRenderer = markdownRenderer;
+      safeSlug = safeSlug.TrimStart('/');
     }
 
-    public async Task<string?> RenderPageHtmlAsync(string slug, CancellationToken cancellationToken)
+    if (safeSlug.Contains("..", StringComparison.Ordinal) || string.IsNullOrWhiteSpace(safeSlug))
     {
-        var safeSlug = string.IsNullOrWhiteSpace(slug) ? "index" : slug.Trim().ToLowerInvariant();
-        safeSlug = safeSlug.Replace('\\', '/');
-        if (safeSlug.StartsWith("/", StringComparison.Ordinal))
-        {
-            safeSlug = safeSlug.TrimStart('/');
-        }
+      return null;
+    }
 
-        if (safeSlug.Contains("..", StringComparison.Ordinal) || string.IsNullOrWhiteSpace(safeSlug))
-        {
-            return null;
-        }
+    var pagesDir = Path.Combine(_environment.ContentRootPath, "Pages", "Content");
+    var filePath = Path.Combine(pagesDir, $"{safeSlug}.md");
+    if (!File.Exists(filePath))
+    {
+      return null;
+    }
 
-        var pagesDir = Path.Combine(_environment.ContentRootPath, "Pages", "Content");
-        var filePath = Path.Combine(pagesDir, $"{safeSlug}.md");
-        if (!File.Exists(filePath))
-        {
-            return null;
-        }
+    var markdown = await File.ReadAllTextAsync(filePath, cancellationToken);
+    var contentHtml = _markdownRenderer.RenderToSafeHtml(markdown);
+    var title = safeSlug == "index" ? "ModVox" : $"ModVox - {safeSlug.Replace('/', ' ')}";
 
-        var markdown = await File.ReadAllTextAsync(filePath, cancellationToken);
-        var contentHtml = _markdownRenderer.RenderToSafeHtml(markdown);
-        var title = safeSlug == "index" ? "ModVox" : $"ModVox - {safeSlug.Replace('/', ' ')}";
-
-        return $@"<!doctype html>
+    return $@"<!doctype html>
 <html lang=""en"">
 <head>
   <meta charset=""utf-8"" />
@@ -58,5 +58,5 @@ public sealed class StaticPageService : IStaticPageService
   </main>
 </body>
 </html>";
-    }
+  }
 }

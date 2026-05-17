@@ -110,93 +110,93 @@
 </section>
 
 @section Scripts {
-<script>
-const modId = '@Model.ModId';
-const status = document.getElementById('edit-mod-status');
-const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
+    <script>
+        const modId = '@Model.ModId';
+        const status = document.getElementById('edit-mod-status');
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
 
-async function post(path, payload) {
-    const headers = { 'Content-Type': 'application/json' };
-    if (csrfToken) {
-        headers['X-CSRF-TOKEN'] = csrfToken;
-    }
+        async function post(path, payload) {
+            const headers = { 'Content-Type': 'application/json' };
+            if (csrfToken) {
+                headers['X-CSRF-TOKEN'] = csrfToken;
+            }
 
-    const r = await fetch(path, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(payload ?? {})
-    });
-    if (!r.ok) throw new Error(r.status);
-    return r;
-}
-
-// Verify token copy
-document.getElementById('copy-verify-token')?.addEventListener('click', () => {
-    const text = document.getElementById('verify-token-display').textContent;
-    navigator.clipboard.writeText(text).then(() => {
-        document.getElementById('copy-verify-token').textContent = 'Copied!';
-    });
-});
-
-// Unified refresh
-document.getElementById('refresh-mod').addEventListener('click', async () => {
-    status.textContent = 'Refreshing mod...';
-    try {
-        const headers = { 'Content-Type': 'application/json' };
-        if (csrfToken) {
-            headers['X-CSRF-TOKEN'] = csrfToken;
+            const r = await fetch(path, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(payload ?? {})
+            });
+            if (!r.ok) throw new Error(r.status);
+            return r;
         }
 
-        const r = await fetch('/api/v1/mods/' + modId + '/refresh', {
-            method: 'POST',
-            headers
+        // Verify token copy
+        document.getElementById('copy-verify-token')?.addEventListener('click', () => {
+            const text = document.getElementById('verify-token-display').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                document.getElementById('copy-verify-token').textContent = 'Copied!';
+            });
         });
-        const data = await r.json();
-        if (!r.ok) {
-            const step = data.step ? (' [' + data.step + ']') : '';
-            status.textContent = (data.message ?? 'Refresh failed.') + step;
-            return;
-        }
 
-        status.textContent = (data.message ?? 'Refresh accepted.') + (data.jobId ? (' Job: ' + data.jobId) : '');
-    } catch {
-        status.textContent = 'Refresh failed. Check server logs for details.';
-    }
-});
+        // Unified refresh
+        document.getElementById('refresh-mod').addEventListener('click', async () => {
+            status.textContent = 'Refreshing mod...';
+            try {
+                const headers = { 'Content-Type': 'application/json' };
+                if (csrfToken) {
+                    headers['X-CSRF-TOKEN'] = csrfToken;
+                }
 
-// Rotate key
-const rotateBtn = document.getElementById('rotate-key');
-const newKeyReveal = document.getElementById('new-key-reveal');
-const newKeyValue = document.getElementById('new-key-value');
+                const r = await fetch('/api/v1/mods/' + modId + '/refresh', {
+                    method: 'POST',
+                    headers
+                });
+                const data = await r.json();
+                if (!r.ok) {
+                    const step = data.step ? (' [' + data.step + ']') : '';
+                    status.textContent = (data.message ?? 'Refresh failed.') + step;
+                    return;
+                }
 
-rotateBtn?.addEventListener('click', async () => {
-    try {
-        const r = await post('/api/v1/mods/' + modId + '/keys/rotate');
-        const data = await r.json();
-        newKeyValue.textContent = data.new_key;
-        newKeyReveal.hidden = false;
-        status.textContent = 'Key rotated. Save the new key now.';
-    } catch {
-        status.textContent = 'Failed to rotate key.';
-    }
-});
+                status.textContent = (data.message ?? 'Refresh accepted.') + (data.jobId ? (' Job: ' + data.jobId) : '');
+            } catch {
+                status.textContent = 'Refresh failed. Check server logs for details.';
+            }
+        });
 
-document.getElementById('copy-new-key')?.addEventListener('click', () => {
-    navigator.clipboard.writeText(newKeyValue.textContent).then(() => {
-        document.getElementById('copy-new-key').textContent = 'Copied!';
-    });
-});
+        // Rotate key
+        const rotateBtn = document.getElementById('rotate-key');
+        const newKeyReveal = document.getElementById('new-key-reveal');
+        const newKeyValue = document.getElementById('new-key-value');
 
-// Revoke key
-document.getElementById('revoke-key')?.addEventListener('click', async () => {
-    try {
-        await post('/api/v1/mods/' + modId + '/keys/revoke');
-        status.textContent = 'Key revoked. CI refreshes are disabled until you rotate.';
-        document.getElementById('revoke-key').disabled = true;
-    } catch {
-        status.textContent = 'Failed to revoke key.';
-    }
-});
+        rotateBtn?.addEventListener('click', async () => {
+            try {
+                const r = await post('/api/v1/mods/' + modId + '/keys/rotate');
+                const data = await r.json();
+                newKeyValue.textContent = data.new_key;
+                newKeyReveal.hidden = false;
+                status.textContent = 'Key rotated. Save the new key now.';
+            } catch {
+                status.textContent = 'Failed to rotate key.';
+            }
+        });
 
-</script>
+        document.getElementById('copy-new-key')?.addEventListener('click', () => {
+            navigator.clipboard.writeText(newKeyValue.textContent).then(() => {
+                document.getElementById('copy-new-key').textContent = 'Copied!';
+            });
+        });
+
+        // Revoke key
+        document.getElementById('revoke-key')?.addEventListener('click', async () => {
+            try {
+                await post('/api/v1/mods/' + modId + '/keys/revoke');
+                status.textContent = 'Key revoked. CI refreshes are disabled until you rotate.';
+                document.getElementById('revoke-key').disabled = true;
+            } catch {
+                status.textContent = 'Failed to revoke key.';
+            }
+        });
+
+    </script>
 }

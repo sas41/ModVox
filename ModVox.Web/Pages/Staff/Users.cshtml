@@ -47,7 +47,8 @@
             </div>
             <div class="staff-inline">
                 <button class="staff-button" type="submit">Create User</button>
-                <button id="cancel-create-user" class="staff-button staff-button-secondary" type="button">Cancel</button>
+                <button id="cancel-create-user" class="staff-button staff-button-secondary"
+                        type="button">Cancel</button>
             </div>
         </form>
     </section>
@@ -71,118 +72,118 @@
 </section>
 
 @section Scripts {
-<script>
-let currentPage = 1;
-let totalPages = 1;
-let currentQuery = '';
+    <script>
+        let currentPage = 1;
+        let totalPages = 1;
+        let currentQuery = '';
 
-const usersList = document.getElementById('users-list');
-const usersStatus = document.getElementById('users-status');
-const pageState = document.getElementById('page-state');
-const createPanel = document.getElementById('create-user-panel');
-const toggleCreate = document.getElementById('toggle-create-user');
-const cancelCreate = document.getElementById('cancel-create-user');
+        const usersList = document.getElementById('users-list');
+        const usersStatus = document.getElementById('users-status');
+        const pageState = document.getElementById('page-state');
+        const createPanel = document.getElementById('create-user-panel');
+        const toggleCreate = document.getElementById('toggle-create-user');
+        const cancelCreate = document.getElementById('cancel-create-user');
 
-function esc(v) {
-    return String(v ?? '')
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#39;');
-}
+        function esc(v) {
+            return String(v ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+        }
 
-async function loadUsers() {
-    usersStatus.textContent = 'Loading users...';
-    const params = new URLSearchParams({ page: String(currentPage), pageSize: '12' });
-    if (currentQuery) params.set('q', currentQuery);
-    const r = await fetch('/api/v1/admin/users?' + params.toString());
-    if (!r.ok) {
-        usersStatus.textContent = 'Failed to load users.';
-        return;
-    }
-    const data = await r.json();
-    totalPages = data.total_pages || 1;
-    currentPage = data.page || 1;
-    pageState.textContent = 'Page ' + currentPage + ' of ' + totalPages;
-    const items = data.items || [];
-    if (items.length === 0) {
-        usersList.innerHTML = '<p class="md-paragraph">No users found.</p>';
-        usersStatus.textContent = '';
-        return;
-    }
-    const rows = items.map(u =>
-        `<tr>
-            <td>${esc(u.username)}</td>
-            <td>${esc(u.displayName)}</td>
-            <td>${esc(u.email)}</td>
-            <td>${esc(u.role)}</td>
-            <td class="staff-actions-cell">
-                <button class="staff-button staff-button-secondary" type="button" onclick="editUser('${u.userId}')">Edit</button>
-            </td>
-        </tr>`
-    ).join('');
-    usersList.innerHTML = `<table class="staff-table">
-        <thead><tr><th>Username</th><th>Display</th><th>Email</th><th>Role</th><th class="staff-actions-cell">Actions</th></tr></thead>
-        <tbody>${rows}</tbody>
-    </table>`;
-    usersStatus.textContent = '';
-}
+        async function loadUsers() {
+            usersStatus.textContent = 'Loading users...';
+            const params = new URLSearchParams({ page: String(currentPage), pageSize: '12' });
+            if (currentQuery) params.set('q', currentQuery);
+            const r = await fetch('/api/v1/admin/users?' + params.toString());
+            if (!r.ok) {
+                usersStatus.textContent = 'Failed to load users.';
+                return;
+            }
+            const data = await r.json();
+            totalPages = data.total_pages || 1;
+            currentPage = data.page || 1;
+            pageState.textContent = 'Page ' + currentPage + ' of ' + totalPages;
+            const items = data.items || [];
+            if (items.length === 0) {
+                usersList.innerHTML = '<p class="md-paragraph">No users found.</p>';
+                usersStatus.textContent = '';
+                return;
+            }
+            const rows = items.map(u =>
+                `<tr>
+                    <td>${esc(u.username)}</td>
+                    <td>${esc(u.displayName)}</td>
+                    <td>${esc(u.email)}</td>
+                    <td>${esc(u.role)}</td>
+                    <td class="staff-actions-cell">
+                        <button class="staff-button staff-button-secondary" type="button" onclick="editUser('${u.userId}')">Edit</button>
+                    </td>
+                </tr>`
+            ).join('');
+            usersList.innerHTML = `<table class="staff-table">
+                <thead><tr><th>Username</th><th>Display</th><th>Email</th><th>Role</th><th class="staff-actions-cell">Actions</th></tr></thead>
+                <tbody>${rows}</tbody>
+            </table>`;
+            usersStatus.textContent = '';
+        }
 
-window.editUser = function (userId) {
-    window.location.href = '/staff/edit/user/' + userId;
-};
+        window.editUser = function (userId) {
+            window.location.href = '/staff/edit/user/' + userId;
+        };
 
-toggleCreate.addEventListener('click', () => {
-    const open = createPanel.hidden;
-    createPanel.hidden = !open;
-    toggleCreate.textContent = open ? 'Hide New User' : 'Add New';
-});
+        toggleCreate.addEventListener('click', () => {
+            const open = createPanel.hidden;
+            createPanel.hidden = !open;
+            toggleCreate.textContent = open ? 'Hide New User' : 'Add New';
+        });
 
-cancelCreate.addEventListener('click', () => {
-    createPanel.hidden = true;
-    toggleCreate.textContent = 'Add New';
-});
+        cancelCreate.addEventListener('click', () => {
+            createPanel.hidden = true;
+            toggleCreate.textContent = 'Add New';
+        });
 
-document.getElementById('create-user-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const payload = {
-        username: document.getElementById('new-username').value,
-        email: document.getElementById('new-email').value,
-        password: document.getElementById('new-password').value,
-        role: document.getElementById('new-role').value
-    };
-    const r = await fetch('/api/v1/admin/users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    });
-    if (!r.ok) {
-        usersStatus.textContent = 'Create user failed.';
-        return;
-    }
-    usersStatus.textContent = 'User created.';
-    e.target.reset();
-    createPanel.hidden = true;
-    toggleCreate.textContent = 'Add New';
-    await loadUsers();
-});
+        document.getElementById('create-user-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = {
+                username: document.getElementById('new-username').value,
+                email: document.getElementById('new-email').value,
+                password: document.getElementById('new-password').value,
+                role: document.getElementById('new-role').value
+            };
+            const r = await fetch('/api/v1/admin/users', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!r.ok) {
+                usersStatus.textContent = 'Create user failed.';
+                return;
+            }
+            usersStatus.textContent = 'User created.';
+            e.target.reset();
+            createPanel.hidden = true;
+            toggleCreate.textContent = 'Add New';
+            await loadUsers();
+        });
 
-document.getElementById('user-search-form').addEventListener('submit', (e) => {
-    e.preventDefault();
-    currentQuery = document.getElementById('user-search').value.trim();
-    currentPage = 1;
-    loadUsers();
-});
+        document.getElementById('user-search-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            currentQuery = document.getElementById('user-search').value.trim();
+            currentPage = 1;
+            loadUsers();
+        });
 
-document.getElementById('prev-page').addEventListener('click', () => {
-    if (currentPage > 1) { currentPage--; loadUsers(); }
-});
+        document.getElementById('prev-page').addEventListener('click', () => {
+            if (currentPage > 1) { currentPage--; loadUsers(); }
+        });
 
-document.getElementById('next-page').addEventListener('click', () => {
-    if (currentPage < totalPages) { currentPage++; loadUsers(); }
-});
+        document.getElementById('next-page').addEventListener('click', () => {
+            if (currentPage < totalPages) { currentPage++; loadUsers(); }
+        });
 
-loadUsers();
-</script>
+        loadUsers();
+    </script>
 }

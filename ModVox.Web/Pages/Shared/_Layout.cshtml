@@ -26,27 +26,27 @@
     </main>
     @await Html.PartialAsync("_CookieNotice")
     <script>
-    (() => {
-        const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-        if (!token) return;
+            (() => {
+                const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                if (!token) return;
 
-        const originalFetch = window.fetch.bind(window);
-        window.fetch = (input, init = {}) => {
-            const request = new Request(input, init);
-            const method = request.method.toUpperCase();
-            const isWrite = method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE';
-            if (!isWrite) {
-                return originalFetch(request);
-            }
+                const originalFetch = window.fetch.bind(window);
+                window.fetch = (input, init = {}) => {
+                    const request = new Request(input, init);
+                    const method = request.method.toUpperCase();
+                    const isWrite = method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE';
+                    if (!isWrite) {
+                        return originalFetch(request);
+                    }
 
-            const headers = new Headers(request.headers);
-            if (!headers.has('Authorization')) {
-                headers.set('X-CSRF-TOKEN', token);
-            }
+                    const headers = new Headers(request.headers);
+                    if (!headers.has('Authorization')) {
+                        headers.set('X-CSRF-TOKEN', token);
+                    }
 
-            return originalFetch(new Request(request, { headers }));
-        };
-    })();
+                    return originalFetch(new Request(request, { headers }));
+                };
+            })();
     </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>

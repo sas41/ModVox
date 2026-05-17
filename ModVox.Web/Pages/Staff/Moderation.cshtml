@@ -15,140 +15,151 @@
         <div class="staff-filter-row">
             <div class="staff-filter-field">
                 <label class="staff-label" for="Search">Search</label>
-                <input class="staff-input" id="Search" name="Search" value="@Model.Search" placeholder="owner/repo or mod name" />
+                <input class="staff-input" id="Search" name="Search" value="@Model.Search"
+                       placeholder="owner/repo or mod name" />
             </div>
             <div class="staff-filter-field">
                 <label class="staff-label" for="StatusFilter">Status</label>
                 <select class="staff-select" id="StatusFilter" name="StatusFilter">
-                    <option value="" selected="@(string.IsNullOrEmpty(Model.StatusFilter) ? "selected" : null)">Any</option>
-                    <option value="unverified" selected="@(Model.StatusFilter == "unverified" ? "selected" : null)">Unverified</option>
-                    <option value="pending" selected="@(Model.StatusFilter == "pending" ? "selected" : null)">Pending</option>
-                    <option value="approved" selected="@(Model.StatusFilter == "approved" ? "selected" : null)">Approved</option>
-                    <option value="hidden" selected="@(Model.StatusFilter == "hidden" ? "selected" : null)">Hidden</option>
-                </select>
+                    <option value="" selected="@(string.IsNullOrEmpty(Model.StatusFilter) ? "selected" : null)">Any
+                    </option>
+                    <option value="unverified" selected="@(Model.StatusFilter == "unverified" ? "selected" : null)">
+                        Unverified</option>
+                        <option value="pending" selected="@(Model.StatusFilter == "pending" ? "selected" : null)">Pending
+                        </option>
+                        <option value="approved" selected="@(Model.StatusFilter == "approved" ? "selected" : null)">Approved
+                        </option>
+                        <option value="hidden" selected="@(Model.StatusFilter == "hidden" ? "selected" : null)">Hidden
+                        </option>
+                    </select>
+                </div>
             </div>
-        </div>
-        <div class="staff-inline">
-            <button class="staff-button" type="submit">Search</button>
-            <a class="staff-button staff-button-secondary" href="/staff/moderation">Clear</a>
-        </div>
-    </form>
+            <div class="staff-inline">
+                <button class="staff-button" type="submit">Search</button>
+                <a class="staff-button staff-button-secondary" href="/staff/moderation">Clear</a>
+            </div>
+        </form>
 
-    <p class="md-paragraph staff-muted">Showing @Model.Mods.Count mod(s).</p>
+        <p class="md-paragraph staff-muted">Showing @Model.Mods.Count mod(s).</p>
 
-    @if (Model.Mods.Count == 0)
-    {
-        <p class="md-paragraph staff-muted">No mods match the current filters.</p>
-    }
-    else
-    {
-        <table class="staff-table">
-            <thead>
-                <tr>
-                    <th>Mod</th>
-                    <th>Owner/Repo</th>
-                    <th>Status</th>
-                    <th>Last Updated</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody id="mods-tbody">
-                @foreach (var m in Model.Mods)
-                {
-                    <tr id="row-@m.ModId" class="@(m.ModerationStatus == "hidden" ? "staff-row-hidden" : "")">
-                        <td><a class="md-link" href="/maintainer/edit/@m.ModId">@m.Name</a></td>
-                        <td><code class="md-inline-code">@m.Owner/@m.Repository</code></td>
-                        <td>
-                            <span class="status-badge status-@m.ModerationStatus" data-status-badge="@m.ModId">@m.ModerationStatus</span>
-                        </td>
-                        <td class="staff-muted">@m.UpdatedAt.ToString("yyyy-MM-dd")</td>
-                        <td class="staff-inline">
-                            @if (m.ModerationStatus == "unverified" || m.ModerationStatus == "pending")
-                            {
-                                <button class="staff-button staff-button-secondary staff-action-btn" data-action="rotate-verify-token" data-mod-id="@m.ModId">Rotate Verify Token</button>
-                            }
-                            @if (m.ModerationStatus != "approved")
-                            {
-                                <button class="staff-button staff-action-btn" data-action="approve" data-mod-id="@m.ModId">Approve</button>
-                            }
-                            @if (m.ModerationStatus == "hidden")
-                            {
-                                if (Model.IsAdmin)
-                                {
-                                    <button class="staff-button staff-button-secondary staff-action-btn" data-action="unhide" data-mod-id="@m.ModId">Unhide</button>
-                                }
-                            }
-                            else
-                            {
-                                <button class="staff-button staff-button-secondary staff-action-btn" data-action="hide" data-mod-id="@m.ModId">Hide</button>
-                            }
-                        </td>
+        @if (Model.Mods.Count == 0)
+        {
+            <p class="md-paragraph staff-muted">No mods match the current filters.</p>
+        }
+        else
+        {
+            <table class="staff-table">
+                <thead>
+                    <tr>
+                        <th>Mod</th>
+                        <th>Owner/Repo</th>
+                        <th>Status</th>
+                        <th>Last Updated</th>
+                        <th>Actions</th>
                     </tr>
+                </thead>
+                <tbody id="mods-tbody">
+                    @foreach (var m in Model.Mods)
+                    {
+                        <tr id="row-@m.ModId" class="@(m.ModerationStatus == "hidden" ? "staff-row-hidden" : "")">
+                            <td><a class="md-link" href="/maintainer/edit/@m.ModId">@m.Name</a></td>
+                            <td><code class="md-inline-code">@m.Owner/@m.Repository</code></td>
+                            <td>
+                                <span class="status-badge status-@m.ModerationStatus"
+                                      data-status-badge="@m.ModId">@m.ModerationStatus</span>
+                            </td>
+                            <td class="staff-muted">@m.UpdatedAt.ToString("yyyy-MM-dd")</td>
+                            <td class="staff-inline">
+                                @if (m.ModerationStatus == "unverified" || m.ModerationStatus == "pending")
+                                {
+                                    <button class="staff-button staff-button-secondary staff-action-btn"
+                                            data-action="rotate-verify-token" data-mod-id="@m.ModId">Rotate Verify Token</button>
+                                }
+                                @if (m.ModerationStatus != "approved")
+                                {
+                                    <button class="staff-button staff-action-btn" data-action="approve"
+                                            data-mod-id="@m.ModId">Approve</button>
+                                }
+                                @if (m.ModerationStatus == "hidden")
+                                {
+                                    if (Model.IsAdmin)
+                                    {
+                                        <button class="staff-button staff-button-secondary staff-action-btn" data-action="unhide"
+                                                data-mod-id="@m.ModId">Unhide</button>
+                                    }
+                                }
+                                else
+                                {
+                                    <button class="staff-button staff-button-secondary staff-action-btn" data-action="hide"
+                                            data-mod-id="@m.ModId">Hide</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        <p id="mods-status" class="staff-status" aria-live="polite"></p>
+        <p class="md-paragraph"><a class="md-link" href="/staff">Back to staff</a></p>
+
+        @if (!string.IsNullOrWhiteSpace(Model.StaffHelpHtml))
+        {
+            <section class="staff-panel">@Html.Raw(Model.StaffHelpHtml)</section>
+        }
+    </section>
+
+    @section Scripts {
+        <script>
+            const status = document.getElementById('mods-status');
+
+            async function modAction(modId, action) {
+                const url = action === 'rotate-verify-token'
+                    ? `/api/v1/mods/${modId}/verify-token/rotate`
+                    : `/api/v1/mods/${modId}/moderation/${action}`;
+                const r = await fetch(url, { method: 'POST' });
+                if (!r.ok) {
+                    let msg = `Failed: ${r.status}`;
+                    try {
+                        const data = await r.json();
+                        if (data?.message) msg = data.message;
+                    } catch { }
+                    status.textContent = msg;
+                    return;
                 }
-            </tbody>
-        </table>
+
+                const data = await r.json();
+                const row = document.getElementById('row-' + modId);
+                const badge = document.querySelector(`[data-status-badge="${modId}"]`);
+                if (!row || !badge) return;
+
+                const newStatus = data.moderationStatus;
+                row.className = newStatus === 'hidden' ? 'staff-row-hidden' : '';
+                badge.className = `status-badge status-${newStatus}`;
+                badge.textContent = newStatus;
+
+                if (action === 'rotate-verify-token') {
+                    status.textContent = `Verification token rotated: ${data.verifyToken}. Mod set to ${newStatus}.`;
+                    return;
+                }
+
+                status.textContent = `Mod set to ${newStatus}. Reload to refresh available actions.`;
+            }
+
+            document.getElementById('mods-tbody')?.addEventListener('click', async e => {
+                const btn = e.target.closest('.staff-action-btn');
+                if (!btn) return;
+
+                const action = btn.dataset.action;
+                const modId = btn.dataset.modId;
+                if (!action || !modId) return;
+
+                btn.disabled = true;
+                try {
+                    await modAction(modId, action);
+                } finally {
+                    btn.disabled = false;
+                }
+            });
+        </script>
     }
-
-    <p id="mods-status" class="staff-status" aria-live="polite"></p>
-    <p class="md-paragraph"><a class="md-link" href="/staff">Back to staff</a></p>
-
-    @if (!string.IsNullOrWhiteSpace(Model.StaffHelpHtml))
-    {
-        <section class="staff-panel">@Html.Raw(Model.StaffHelpHtml)</section>
-    }
-</section>
-
-@section Scripts {
-<script>
-const status = document.getElementById('mods-status');
-
-async function modAction(modId, action) {
-    const url = action === 'rotate-verify-token'
-        ? `/api/v1/mods/${modId}/verify-token/rotate`
-        : `/api/v1/mods/${modId}/moderation/${action}`;
-    const r = await fetch(url, { method: 'POST' });
-    if (!r.ok) {
-        let msg = `Failed: ${r.status}`;
-        try {
-            const data = await r.json();
-            if (data?.message) msg = data.message;
-        } catch {}
-        status.textContent = msg;
-        return;
-    }
-
-    const data = await r.json();
-    const row = document.getElementById('row-' + modId);
-    const badge = document.querySelector(`[data-status-badge="${modId}"]`);
-    if (!row || !badge) return;
-
-    const newStatus = data.moderationStatus;
-    row.className = newStatus === 'hidden' ? 'staff-row-hidden' : '';
-    badge.className = `status-badge status-${newStatus}`;
-    badge.textContent = newStatus;
-
-    if (action === 'rotate-verify-token') {
-        status.textContent = `Verification token rotated: ${data.verifyToken}. Mod set to ${newStatus}.`;
-        return;
-    }
-
-    status.textContent = `Mod set to ${newStatus}. Reload to refresh available actions.`;
-}
-
-document.getElementById('mods-tbody')?.addEventListener('click', async e => {
-    const btn = e.target.closest('.staff-action-btn');
-    if (!btn) return;
-
-    const action = btn.dataset.action;
-    const modId = btn.dataset.modId;
-    if (!action || !modId) return;
-
-    btn.disabled = true;
-    try {
-        await modAction(modId, action);
-    } finally {
-        btn.disabled = false;
-    }
-});
-</script>
-}

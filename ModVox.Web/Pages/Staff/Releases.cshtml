@@ -15,11 +15,13 @@
         <div class="staff-filter-row">
             <div class="staff-filter-field">
                 <label class="staff-label" for="TagFilter">Tag / version</label>
-                <input class="staff-input" id="TagFilter" name="TagFilter" value="@Model.TagFilter" placeholder="e.g. v1.0.0" />
+                <input class="staff-input" id="TagFilter" name="TagFilter" value="@Model.TagFilter"
+                       placeholder="e.g. v1.0.0" />
             </div>
             <div class="staff-filter-field">
                 <label class="staff-label" for="ModFilter">Mod name</label>
-                <input class="staff-input" id="ModFilter" name="ModFilter" value="@Model.ModFilter" placeholder="Partial name" />
+                <input class="staff-input" id="ModFilter" name="ModFilter" value="@Model.ModFilter"
+                       placeholder="Partial name" />
             </div>
             <div class="staff-filter-field">
                 <label class="staff-label" for="GameFilter">Game</label>
@@ -41,7 +43,8 @@
             <div class="staff-filter-field">
                 <label class="staff-label" for="PrereleaseFilter">Pre-release</label>
                 <select class="staff-select" id="PrereleaseFilter" name="PrereleaseFilter">
-                    <option value="" selected="@(string.IsNullOrEmpty(Model.PrereleaseFilter) ? "selected" : null)">Any</option>
+                    <option value="" selected="@(string.IsNullOrEmpty(Model.PrereleaseFilter) ? "selected" : null)">Any
+                    </option>
                     <option value="yes" selected="@(Model.PrereleaseFilter == "yes" ? "selected" : null)">Yes</option>
                     <option value="no" selected="@(Model.PrereleaseFilter == "no" ? "selected" : null)">No</option>
                 </select>
@@ -49,7 +52,8 @@
             <div class="staff-filter-field">
                 <label class="staff-label" for="HiddenFilter">Visibility</label>
                 <select class="staff-select" id="HiddenFilter" name="HiddenFilter">
-                    <option value="" selected="@(string.IsNullOrEmpty(Model.HiddenFilter) ? "selected" : null)">Any</option>
+                    <option value="" selected="@(string.IsNullOrEmpty(Model.HiddenFilter) ? "selected" : null)">Any
+                    </option>
                     <option value="no" selected="@(Model.HiddenFilter == "no" ? "selected" : null)">Visible</option>
                     <option value="yes" selected="@(Model.HiddenFilter == "yes" ? "selected" : null)">Hidden</option>
                 </select>
@@ -105,18 +109,18 @@
                         <td class="staff-inline">
                             @if (r.IsHidden)
                             {
-                                <button class="staff-button staff-button-secondary staff-action-btn"
-                                        data-action="unhide" data-release-id="@r.ReleaseId">Unhide</button>
+                                <button class="staff-button staff-button-secondary staff-action-btn" data-action="unhide"
+                                        data-release-id="@r.ReleaseId">Unhide</button>
                             }
                             else
                             {
-                                <button class="staff-button staff-button-secondary staff-action-btn"
-                                        data-action="hide" data-release-id="@r.ReleaseId">Hide</button>
+                                <button class="staff-button staff-button-secondary staff-action-btn" data-action="hide"
+                                        data-release-id="@r.ReleaseId">Hide</button>
                             }
                             @if (Model.IsAdmin)
                             {
-                                <button class="staff-button staff-button-danger staff-action-btn"
-                                        data-action="delete" data-release-id="@r.ReleaseId">Delete</button>
+                                <button class="staff-button staff-button-danger staff-action-btn" data-action="delete"
+                                        data-release-id="@r.ReleaseId">Delete</button>
                             }
                         </td>
                     </tr>
@@ -129,7 +133,8 @@
             <div class="staff-pagination">
                 @for (int p = 1; p <= Model.TotalPages; p++)
                 {
-                    var qs = $"?TagFilter={Model.TagFilter}&ModFilter={Model.ModFilter}&GameFilter={Model.GameFilter}&PrereleaseFilter={Model.PrereleaseFilter}&HiddenFilter={Model.HiddenFilter}&PageNum={p}";
+                    var qs =
+        $"?TagFilter={Model.TagFilter}&ModFilter={Model.ModFilter}&GameFilter={Model.GameFilter}&PrereleaseFilter={Model.PrereleaseFilter}&HiddenFilter={Model.HiddenFilter}&PageNum={p}";
                     <a class="staff-page-link @(p == Model.PageNum ? "staff-page-link-active" : "")"
                        href="/staff/releases@qs">@p</a>
                 }
@@ -142,69 +147,69 @@
 </section>
 
 @section Scripts {
-<script>
-const status = document.getElementById('releases-status');
+    <script>
+        const status = document.getElementById('releases-status');
 
-async function releaseAction(releaseId, action) {
-    const method = action === 'delete' ? 'DELETE' : 'POST';
-    const url = action === 'delete'
-        ? `/api/v1/releases/${releaseId}`
-        : `/api/v1/releases/${releaseId}/${action}`;
+        async function releaseAction(releaseId, action) {
+            const method = action === 'delete' ? 'DELETE' : 'POST';
+            const url = action === 'delete'
+                ? `/api/v1/releases/${releaseId}`
+                : `/api/v1/releases/${releaseId}/${action}`;
 
-    const r = await fetch(url, { method });
-    if (!r.ok) {
-        status.textContent = `Failed: ${r.status}`;
-        return;
-    }
+            const r = await fetch(url, { method });
+            if (!r.ok) {
+                status.textContent = `Failed: ${r.status}`;
+                return;
+            }
 
-    const row = document.getElementById('row-' + releaseId);
-    if (!row) return;
+            const row = document.getElementById('row-' + releaseId);
+            if (!row) return;
 
-    if (action === 'delete') {
-        row.remove();
-        status.textContent = 'Release deleted.';
-        return;
-    }
+            if (action === 'delete') {
+                row.remove();
+                status.textContent = 'Release deleted.';
+                return;
+            }
 
-    const data = await r.json();
-    const isHidden = data.is_hidden;
-    row.className = isHidden ? 'staff-row-hidden' : '';
+            const data = await r.json();
+            const isHidden = data.is_hidden;
+            row.className = isHidden ? 'staff-row-hidden' : '';
 
-    const btn = row.querySelector(`[data-action="${action}"]`);
-    if (btn) {
-        btn.dataset.action = isHidden ? 'unhide' : 'hide';
-        btn.textContent = isHidden ? 'Unhide' : 'Hide';
-    }
+            const btn = row.querySelector(`[data-action="${action}"]`);
+            if (btn) {
+                btn.dataset.action = isHidden ? 'unhide' : 'hide';
+                btn.textContent = isHidden ? 'Unhide' : 'Hide';
+            }
 
-    const flagCell = row.cells[5];
-    const existingHiddenBadge = flagCell.querySelector('.status-hidden');
-    if (isHidden && !existingHiddenBadge) {
-        const badge = document.createElement('span');
-        badge.className = 'status-badge status-hidden';
-        badge.textContent = 'hidden';
-        flagCell.appendChild(badge);
-    } else if (!isHidden && existingHiddenBadge) {
-        existingHiddenBadge.remove();
-    }
+            const flagCell = row.cells[5];
+            const existingHiddenBadge = flagCell.querySelector('.status-hidden');
+            if (isHidden && !existingHiddenBadge) {
+                const badge = document.createElement('span');
+                badge.className = 'status-badge status-hidden';
+                badge.textContent = 'hidden';
+                flagCell.appendChild(badge);
+            } else if (!isHidden && existingHiddenBadge) {
+                existingHiddenBadge.remove();
+            }
 
-    status.textContent = isHidden ? 'Release hidden.' : 'Release unhidden.';
-}
+            status.textContent = isHidden ? 'Release hidden.' : 'Release unhidden.';
+        }
 
-document.getElementById('releases-tbody')?.addEventListener('click', async e => {
-    const btn = e.target.closest('.staff-action-btn');
-    if (!btn) return;
+        document.getElementById('releases-tbody')?.addEventListener('click', async e => {
+            const btn = e.target.closest('.staff-action-btn');
+            if (!btn) return;
 
-    const action = btn.dataset.action;
-    const releaseId = btn.dataset.releaseId;
+            const action = btn.dataset.action;
+            const releaseId = btn.dataset.releaseId;
 
-    if (action === 'delete' && !confirm('Permanently delete this release and all its files?')) return;
+            if (action === 'delete' && !confirm('Permanently delete this release and all its files?')) return;
 
-    btn.disabled = true;
-    try {
-        await releaseAction(releaseId, action);
-    } finally {
-        btn.disabled = false;
-    }
-});
-</script>
+            btn.disabled = true;
+            try {
+                await releaseAction(releaseId, action);
+            } finally {
+                btn.disabled = false;
+            }
+        });
+    </script>
 }

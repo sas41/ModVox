@@ -1,6 +1,0 @@
-@ModVox.Web_HostAddress = http://localhost:5104
-
-GET {{ModVox.Web_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###

@@ -34,7 +34,8 @@
             </div>
             <div class="staff-inline">
                 <button class="staff-button" type="submit">Create Game</button>
-                <button id="cancel-create-game" class="staff-button staff-button-secondary" type="button">Cancel</button>
+                <button id="cancel-create-game" class="staff-button staff-button-secondary"
+                        type="button">Cancel</button>
             </div>
         </form>
     </section>
@@ -58,109 +59,109 @@
 </section>
 
 @section Scripts {
-<script>
-let currentPage = 1;
-let totalPages = 1;
-let currentQuery = '';
+    <script>
+        let currentPage = 1;
+        let totalPages = 1;
+        let currentQuery = '';
 
-const gamesList = document.getElementById('games-list');
-const status = document.getElementById('games-status');
-const pageState = document.getElementById('games-page-state');
-const panel = document.getElementById('create-game-panel');
-const toggle = document.getElementById('toggle-create-game');
-const cancel = document.getElementById('cancel-create-game');
+        const gamesList = document.getElementById('games-list');
+        const status = document.getElementById('games-status');
+        const pageState = document.getElementById('games-page-state');
+        const panel = document.getElementById('create-game-panel');
+        const toggle = document.getElementById('toggle-create-game');
+        const cancel = document.getElementById('cancel-create-game');
 
-function esc(v) {
-    return String(v ?? '')
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#39;');
-}
+        function esc(v) {
+            return String(v ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+        }
 
-async function loadGames() {
-    status.textContent = 'Loading games...';
-    const p = new URLSearchParams({ page: String(currentPage), pageSize: '12' });
-    if (currentQuery) p.set('q', currentQuery);
-    const r = await fetch('/api/v1/admin/games?' + p.toString());
-    if (!r.ok) {
-        status.textContent = 'Failed to load games.';
-        return;
-    }
-    const d = await r.json();
-    currentPage = d.page || 1;
-    totalPages = d.total_pages || 1;
-    pageState.textContent = 'Page ' + currentPage + ' of ' + totalPages;
-    const items = d.items || [];
-    if (items.length === 0) {
-        gamesList.innerHTML = '<p class="md-paragraph">No games found.</p>';
-        status.textContent = '';
-        return;
-    }
-    const rows = items.map(g =>
-        `<tr>
-            <td>${esc(g.name)}</td>
-            <td>${esc(g.slug)}</td>
-            <td>${g.is_hidden ? 'hidden' : 'visible'}</td>
-            <td class="staff-actions-cell"><a class="md-link" href="/staff/edit/game/${g.game_id}">Edit</a></td>
-        </tr>`
-    ).join('');
-    gamesList.innerHTML = `<table class="staff-table">
-        <thead><tr><th>Name</th><th>Slug</th><th>Visibility</th><th class="staff-actions-cell">Actions</th></tr></thead>
-        <tbody>${rows}</tbody>
-    </table>`;
-    status.textContent = '';
-}
+        async function loadGames() {
+            status.textContent = 'Loading games...';
+            const p = new URLSearchParams({ page: String(currentPage), pageSize: '12' });
+            if (currentQuery) p.set('q', currentQuery);
+            const r = await fetch('/api/v1/admin/games?' + p.toString());
+            if (!r.ok) {
+                status.textContent = 'Failed to load games.';
+                return;
+            }
+            const d = await r.json();
+            currentPage = d.page || 1;
+            totalPages = d.total_pages || 1;
+            pageState.textContent = 'Page ' + currentPage + ' of ' + totalPages;
+            const items = d.items || [];
+            if (items.length === 0) {
+                gamesList.innerHTML = '<p class="md-paragraph">No games found.</p>';
+                status.textContent = '';
+                return;
+            }
+            const rows = items.map(g =>
+                `<tr>
+                    <td>${esc(g.name)}</td>
+                    <td>${esc(g.slug)}</td>
+                    <td>${g.is_hidden ? 'hidden' : 'visible'}</td>
+                    <td class="staff-actions-cell"><a class="md-link" href="/staff/edit/game/${g.game_id}">Edit</a></td>
+                </tr>`
+            ).join('');
+            gamesList.innerHTML = `<table class="staff-table">
+                <thead><tr><th>Name</th><th>Slug</th><th>Visibility</th><th class="staff-actions-cell">Actions</th></tr></thead>
+                <tbody>${rows}</tbody>
+            </table>`;
+            status.textContent = '';
+        }
 
-document.getElementById('game-search-form').addEventListener('submit', e => {
-    e.preventDefault();
-    currentQuery = document.getElementById('game-search').value.trim();
-    currentPage = 1;
-    loadGames();
-});
+        document.getElementById('game-search-form').addEventListener('submit', e => {
+            e.preventDefault();
+            currentQuery = document.getElementById('game-search').value.trim();
+            currentPage = 1;
+            loadGames();
+        });
 
-document.getElementById('games-prev').addEventListener('click', () => {
-    if (currentPage > 1) { currentPage--; loadGames(); }
-});
+        document.getElementById('games-prev').addEventListener('click', () => {
+            if (currentPage > 1) { currentPage--; loadGames(); }
+        });
 
-document.getElementById('games-next').addEventListener('click', () => {
-    if (currentPage < totalPages) { currentPage++; loadGames(); }
-});
+        document.getElementById('games-next').addEventListener('click', () => {
+            if (currentPage < totalPages) { currentPage++; loadGames(); }
+        });
 
-toggle.addEventListener('click', () => {
-    const open = panel.hidden;
-    panel.hidden = !open;
-    toggle.textContent = open ? 'Hide New Game' : 'Add New';
-});
+        toggle.addEventListener('click', () => {
+            const open = panel.hidden;
+            panel.hidden = !open;
+            toggle.textContent = open ? 'Hide New Game' : 'Add New';
+        });
 
-cancel.addEventListener('click', () => {
-    panel.hidden = true;
-    toggle.textContent = 'Add New';
-});
+        cancel.addEventListener('click', () => {
+            panel.hidden = true;
+            toggle.textContent = 'Add New';
+        });
 
-document.getElementById('create-game-form').addEventListener('submit', async e => {
-    e.preventDefault();
-    const payload = {
-        name: document.getElementById('new-game-name').value,
-        slug: document.getElementById('new-game-slug').value
-    };
-    const r = await fetch('/api/v1/admin/games', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    });
-    if (!r.ok) {
-        status.textContent = 'Create game failed.';
-        return;
-    }
-    status.textContent = 'Game created.';
-    e.target.reset();
-    panel.hidden = true;
-    toggle.textContent = 'Add New';
-    loadGames();
-});
+        document.getElementById('create-game-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            const payload = {
+                name: document.getElementById('new-game-name').value,
+                slug: document.getElementById('new-game-slug').value
+            };
+            const r = await fetch('/api/v1/admin/games', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!r.ok) {
+                status.textContent = 'Create game failed.';
+                return;
+            }
+            status.textContent = 'Game created.';
+            e.target.reset();
+            panel.hidden = true;
+            toggle.textContent = 'Add New';
+            loadGames();
+        });
 
-loadGames();
-</script>
+        loadGames();
+    </script>
 }

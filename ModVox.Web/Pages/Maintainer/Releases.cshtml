@@ -59,18 +59,18 @@
                         <td class="staff-inline">
                             @if (r.IsHidden)
                             {
-                                <button class="staff-button staff-button-secondary staff-action-btn"
-                                        data-action="unhide" data-release-id="@r.ReleaseId">Unhide</button>
+                                <button class="staff-button staff-button-secondary staff-action-btn" data-action="unhide"
+                                        data-release-id="@r.ReleaseId">Unhide</button>
                             }
                             else
                             {
-                                <button class="staff-button staff-button-secondary staff-action-btn"
-                                        data-action="hide" data-release-id="@r.ReleaseId">Hide</button>
+                                <button class="staff-button staff-button-secondary staff-action-btn" data-action="hide"
+                                        data-release-id="@r.ReleaseId">Hide</button>
                             }
                             @if (Model.IsAdmin)
                             {
-                                <button class="staff-button staff-button-danger staff-action-btn"
-                                        data-action="delete" data-release-id="@r.ReleaseId">Delete</button>
+                                <button class="staff-button staff-button-danger staff-action-btn" data-action="delete"
+                                        data-release-id="@r.ReleaseId">Delete</button>
                             }
                         </td>
                     </tr>
@@ -84,80 +84,80 @@
 </section>
 
 @section Scripts {
-<script>
-const status = document.getElementById('releases-status');
+    <script>
+        const status = document.getElementById('releases-status');
 
-async function releaseAction(releaseId, action) {
-    const method = action === 'delete' ? 'DELETE' : 'POST';
-    const url = action === 'delete'
-        ? `/api/v1/releases/${releaseId}`
-        : `/api/v1/releases/${releaseId}/${action}`;
+        async function releaseAction(releaseId, action) {
+            const method = action === 'delete' ? 'DELETE' : 'POST';
+            const url = action === 'delete'
+                ? `/api/v1/releases/${releaseId}`
+                : `/api/v1/releases/${releaseId}/${action}`;
 
-    const r = await fetch(url, { method });
-    if (!r.ok) {
-        status.textContent = `Failed: ${r.status}`;
-        return;
-    }
+            const r = await fetch(url, { method });
+            if (!r.ok) {
+                status.textContent = `Failed: ${r.status}`;
+                return;
+            }
 
-    const row = document.getElementById('row-' + releaseId);
-    if (!row) return;
+            const row = document.getElementById('row-' + releaseId);
+            if (!row) return;
 
-    if (action === 'delete') {
-        row.remove();
-        status.textContent = 'Release deleted permanently.';
-        return;
-    }
+            if (action === 'delete') {
+                row.remove();
+                status.textContent = 'Release deleted permanently.';
+                return;
+            }
 
-    const data = await r.json();
-    const isHidden = data.is_hidden;
-    row.className = isHidden ? 'staff-row-hidden' : '';
+            const data = await r.json();
+            const isHidden = data.is_hidden;
+            row.className = isHidden ? 'staff-row-hidden' : '';
 
-    const btn = row.querySelector(`[data-action="${action}"]`);
-    if (btn) {
-        btn.dataset.action = isHidden ? 'unhide' : 'hide';
-        btn.textContent = isHidden ? 'Unhide' : 'Hide';
-    }
+            const btn = row.querySelector(`[data-action="${action}"]`);
+            if (btn) {
+                btn.dataset.action = isHidden ? 'unhide' : 'hide';
+                btn.textContent = isHidden ? 'Unhide' : 'Hide';
+            }
 
-    const statusCell = row.cells[4];
-    const hiddenBadge = statusCell.querySelector('.status-hidden');
-    const visibleBadge = statusCell.querySelector('.status-approved');
+            const statusCell = row.cells[4];
+            const hiddenBadge = statusCell.querySelector('.status-hidden');
+            const visibleBadge = statusCell.querySelector('.status-approved');
 
-    if (isHidden) {
-        if (!hiddenBadge) {
-            const b = document.createElement('span');
-            b.className = 'status-badge status-hidden';
-            b.textContent = 'hidden';
-            statusCell.appendChild(b);
+            if (isHidden) {
+                if (!hiddenBadge) {
+                    const b = document.createElement('span');
+                    b.className = 'status-badge status-hidden';
+                    b.textContent = 'hidden';
+                    statusCell.appendChild(b);
+                }
+                visibleBadge?.remove();
+            } else {
+                hiddenBadge?.remove();
+                if (!visibleBadge) {
+                    const b = document.createElement('span');
+                    b.className = 'status-badge status-approved';
+                    b.textContent = 'visible';
+                    statusCell.appendChild(b);
+                }
+            }
+
+            status.textContent = isHidden ? 'Release hidden.' : 'Release unhidden.';
         }
-        visibleBadge?.remove();
-    } else {
-        hiddenBadge?.remove();
-        if (!visibleBadge) {
-            const b = document.createElement('span');
-            b.className = 'status-badge status-approved';
-            b.textContent = 'visible';
-            statusCell.appendChild(b);
-        }
-    }
 
-    status.textContent = isHidden ? 'Release hidden.' : 'Release unhidden.';
-}
+        document.getElementById('releases-tbody')?.addEventListener('click', async e => {
+            const btn = e.target.closest('.staff-action-btn');
+            if (!btn) return;
 
-document.getElementById('releases-tbody')?.addEventListener('click', async e => {
-    const btn = e.target.closest('.staff-action-btn');
-    if (!btn) return;
+            const action = btn.dataset.action;
+            const releaseId = btn.dataset.releaseId;
 
-    const action = btn.dataset.action;
-    const releaseId = btn.dataset.releaseId;
+            if (action === 'delete' && !confirm('Permanently delete this release and all its files? This cannot be undone.')) return;
 
-    if (action === 'delete' && !confirm('Permanently delete this release and all its files? This cannot be undone.')) return;
-
-    btn.disabled = true;
-    try {
-        await releaseAction(releaseId, action);
-    } finally {
-        btn.disabled = false;
-    }
-});
-</script>
+            btn.disabled = true;
+            try {
+                await releaseAction(releaseId, action);
+            } finally {
+                btn.disabled = false;
+            }
+        });
+    </script>
 }

@@ -11,8 +11,10 @@
         <h2 class="md-heading md-h3">How it works</h2>
         <ol class="md-list md-list-ordered">
             <li class="md-list-item">
-                Download the scaffold <code class="md-inline-code">@Model.ManifestFileName</code> below and commit it to the root of your repository.
-                Fill in all required fields: <code class="md-inline-code">name</code>, <code class="md-inline-code">default_ref</code>,
+                Download the scaffold <code class="md-inline-code">@Model.ManifestFileName</code> below and commit it to
+                the root of your repository.
+                Fill in all required fields: <code class="md-inline-code">name</code>, <code
+                class="md-inline-code">default_ref</code>,
                 <code class="md-inline-code">readme</code>, <code class="md-inline-code">changelog</code>,
                 <code class="md-inline-code">images</code>, and <code class="md-inline-code">tags</code>.
                 Tag values should be text labels (not GUIDs).
@@ -20,16 +22,19 @@
                 <code class="md-inline-code">external_credits</code> for plain name-only credits.
             </li>
             <li class="md-list-item">
-                Submit the form below. We will read your <code class="md-inline-code">@Model.ManifestFileName</code> from the repository
+                Submit the form below. We will read your <code class="md-inline-code">@Model.ManifestFileName</code>
+                from the repository
                 and register the mod in an <strong>unverified</strong> state.
             </li>
             <li class="md-list-item">
                 You will receive a <strong>verification token</strong> and a <strong>mod key</strong>.
-                Add the verification token to the <code class="md-inline-code">verify</code> field in your manifest and commit it.
+                Add the verification token to the <code class="md-inline-code">verify</code> field in your manifest and
+                commit it.
             </li>
             <li class="md-list-item">
                 Go to your mod's manage page and click <strong>Refresh Manifest</strong>.
-                Once the token matches, your mod transitions to <strong>pending</strong> and becomes visible to moderators for approval.
+                Once the token matches, your mod transitions to <strong>pending</strong> and becomes visible to
+                moderators for approval.
             </li>
         </ol>
         <button id="download-scaffold" class="staff-button staff-button-secondary" type="button">
@@ -73,7 +78,8 @@
         </div>
         <div>
             <label class="staff-label" for="repository-url">Repository URL</label>
-            <input class="staff-input" id="repository-url" type="url" placeholder="https://github.com/owner/repo" required />
+            <input class="staff-input" id="repository-url" type="url" placeholder="https://github.com/owner/repo"
+                   required />
         </div>
         <div>
             <label class="staff-label" for="initial-ref">
@@ -132,81 +138,81 @@
 </section>
 
 @section Scripts {
-<script>
-const form = document.getElementById('register-mod-form');
-const resultPanel = document.getElementById('result-panel');
-const status = document.getElementById('register-status');
+    <script>
+        const form = document.getElementById('register-mod-form');
+        const resultPanel = document.getElementById('result-panel');
+        const status = document.getElementById('register-status');
 
-document.getElementById('download-scaffold').addEventListener('click', async () => {
-    const r = await fetch('/api/v1/manifest/scaffold');
-    if (!r.ok) { status.textContent = 'Failed to download scaffold.'; return; }
-    const blob = await r.blob();
-    const disposition = r.headers.get('Content-Disposition') ?? '';
-    const match = disposition.match(/filename=([^;]+)/);
-    const fileName = match ? match[1].trim() : '@Model.ManifestFileName';
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileName;
-    a.click();
-    URL.revokeObjectURL(url);
-});
-
-form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    status.textContent = 'Registering...';
-
-    const payload = {
-        gameId: document.getElementById('game-id').value,
-        repositoryUrl: document.getElementById('repository-url').value,
-        initialRef: document.getElementById('initial-ref').value.trim() || null
-    };
-
-    const r = await fetch('/api/v1/mods', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    });
-
-    if (!r.ok) {
-        let msg = 'Registration failed (' + r.status + ').';
-        try {
-            const err = await r.json();
-            if (err.message) {
-                msg = err.message;
-                if (err.message.includes('None of the specified tags matched')) {
-                    const available = Array.from(document.querySelectorAll('.staff-tag-chip')).map(x => x.textContent).filter(Boolean);
-                    if (available.length > 0) {
-                        msg += ' Available tags: ' + available.join(', ');
-                    }
-                }
-            }
-        } catch {}
-        status.textContent = msg;
-        return;
-    }
-
-    const data = await r.json();
-
-    form.hidden = true;
-    document.getElementById('result-mod-name').textContent = data.name;
-    document.getElementById('verify-token-value').textContent = data.verifyToken;
-    document.getElementById('mod-key-value').textContent = data.key;
-    document.getElementById('manage-mod-link').href = '/maintainer/edit/' + data.modId;
-    resultPanel.hidden = false;
-    status.textContent = '';
-});
-
-function makeCopyButton(buttonId, sourceId) {
-    document.getElementById(buttonId).addEventListener('click', () => {
-        const text = document.getElementById(sourceId).textContent;
-        navigator.clipboard.writeText(text).then(() => {
-            document.getElementById(buttonId).textContent = 'Copied!';
+        document.getElementById('download-scaffold').addEventListener('click', async () => {
+            const r = await fetch('/api/v1/manifest/scaffold');
+            if (!r.ok) { status.textContent = 'Failed to download scaffold.'; return; }
+            const blob = await r.blob();
+            const disposition = r.headers.get('Content-Disposition') ?? '';
+            const match = disposition.match(/filename=([^;]+)/);
+            const fileName = match ? match[1].trim() : '@Model.ManifestFileName';
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            a.click();
+            URL.revokeObjectURL(url);
         });
-    });
-}
 
-makeCopyButton('copy-verify-token', 'verify-token-value');
-makeCopyButton('copy-mod-key', 'mod-key-value');
-</script>
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            status.textContent = 'Registering...';
+
+            const payload = {
+                gameId: document.getElementById('game-id').value,
+                repositoryUrl: document.getElementById('repository-url').value,
+                initialRef: document.getElementById('initial-ref').value.trim() || null
+            };
+
+            const r = await fetch('/api/v1/mods', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!r.ok) {
+                let msg = 'Registration failed (' + r.status + ').';
+                try {
+                    const err = await r.json();
+                    if (err.message) {
+                        msg = err.message;
+                        if (err.message.includes('None of the specified tags matched')) {
+                            const available = Array.from(document.querySelectorAll('.staff-tag-chip')).map(x => x.textContent).filter(Boolean);
+                            if (available.length > 0) {
+                                msg += ' Available tags: ' + available.join(', ');
+                            }
+                        }
+                    }
+                } catch { }
+                status.textContent = msg;
+                return;
+            }
+
+            const data = await r.json();
+
+            form.hidden = true;
+            document.getElementById('result-mod-name').textContent = data.name;
+            document.getElementById('verify-token-value').textContent = data.verifyToken;
+            document.getElementById('mod-key-value').textContent = data.key;
+            document.getElementById('manage-mod-link').href = '/maintainer/edit/' + data.modId;
+            resultPanel.hidden = false;
+            status.textContent = '';
+        });
+
+        function makeCopyButton(buttonId, sourceId) {
+            document.getElementById(buttonId).addEventListener('click', () => {
+                const text = document.getElementById(sourceId).textContent;
+                navigator.clipboard.writeText(text).then(() => {
+                    document.getElementById(buttonId).textContent = 'Copied!';
+                });
+            });
+        }
+
+        makeCopyButton('copy-verify-token', 'verify-token-value');
+        makeCopyButton('copy-mod-key', 'mod-key-value');
+    </script>
 }
